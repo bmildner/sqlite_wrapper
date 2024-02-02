@@ -77,7 +77,7 @@ namespace sqlite_wrapper
   template <column_type... column_types>
   struct table;
 
-  template<string_literal col_name, column_type T>
+  template</*string_literal col_name,*/ column_type T>
   struct column
   {    
     column(std::string_view name) requires !details::is_foreign_key<T>
@@ -93,7 +93,8 @@ namespace sqlite_wrapper
 
     static constexpr auto is_primary_key{details::is_primary_key<T>};
 
-    static constexpr auto name{col_name}
+    //static constexpr auto name{col_name};
+    std::string_view name;
 
     using foreign_key_info = std::optional<std::pair<std::string_view, std::string_view>>;
     foreign_key_info foreign_key{std::nullopt};

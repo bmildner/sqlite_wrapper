@@ -12,6 +12,7 @@ endif()
 project ("sqlite_wrapper")
 
 find_package(unofficial-sqlite3 CONFIG REQUIRED)    
+find_package(fmt CONFIG REQUIRED)
 
 # Include sub-projects.
 add_subdirectory ("sqlite_wrapper")

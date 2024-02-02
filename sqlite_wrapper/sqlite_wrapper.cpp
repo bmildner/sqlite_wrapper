@@ -3,9 +3,9 @@
 
 #include "sqlite_wrapper.h"
 
-#include <format>
 #include <iostream>
 
+#include <fmt/format.h>
 #include <sqlite3.h>
 
 
@@ -23,8 +23,8 @@ int main()
 	decltype(test_table)::row_type row;
 
 	auto other_table{ sqlite_wrapper::table("other_table",
-																				 sqlite_wrapper::column<sqlite_wrapper::primary_key>("pk_other_table"),
-																				 sqlite_wrapper::column <sqlite_wrapper::foreign_key>("fk_test_table", test_table))};
+											sqlite_wrapper::column<sqlite_wrapper::primary_key>("pk_other_table"),
+											sqlite_wrapper::column <sqlite_wrapper::foreign_key>("fk_test_table", test_table))};
 
 
 	return 0;

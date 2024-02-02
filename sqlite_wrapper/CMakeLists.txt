@@ -9,6 +9,6 @@ if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET sqlite_wrapper PROPERTY CXX_STANDARD 20)
 endif()
 
-target_link_libraries(sqlite_wrapper PRIVATE unofficial::sqlite3::sqlite3)
+target_link_libraries(sqlite_wrapper PRIVATE unofficial::sqlite3::sqlite3 fmt::fmt)
 
 # TODO: Add tests and install targets if needed.
