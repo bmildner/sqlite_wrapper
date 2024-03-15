@@ -3,7 +3,7 @@
 #
 
 # Add source to this project's executable.
-add_executable (sqlite_wrapper "sqlite_wrapper.cpp" "sqlite_wrapper.h")
+add_executable (sqlite_wrapper "sqlite_wrapper.cpp" "sqlite_wrapper.h" "sqlite_wrapper_raii.h" "sqlite_wrapper_raii.cpp" "sqlite_wrapper_error.h" "sqlite_wrapper_error.cpp" "sqlite_wrapper_format.h" "sqlite_wrapper_location.h")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET sqlite_wrapper PROPERTY CXX_STANDARD 20)

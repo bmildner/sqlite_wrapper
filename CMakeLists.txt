@@ -11,6 +11,8 @@ endif()
 
 project ("sqlite_wrapper")
 
+set(CMAKE_CXX_STANDARD 23)
+
 find_package(unofficial-sqlite3 CONFIG REQUIRED)    
 find_package(fmt CONFIG REQUIRED)
 
