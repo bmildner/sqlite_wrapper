@@ -11,6 +11,7 @@
 
 #include "sqlite_wrapper_error.h"
 #include "sqlite_wrapper_format.h"
+#include "sqlite_wrapper_create_table.h"
 
 namespace sqlite_wrapper
 {
