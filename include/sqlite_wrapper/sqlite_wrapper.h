@@ -12,10 +12,11 @@
 #include <limits>
 #include <ranges>
 
-#include "sqlite_wrapper_raii.h"
-#include "sqlite_wrapper_location.h"
-#include "sqlite_wrapper_error.h"
-#include "sqlite_wrapper_format.h"
+#include "sqlite_wrapper/config.h"
+#include "sqlite_wrapper/raii.h"
+#include "sqlite_wrapper/location.h"
+#include "sqlite_wrapper/error.h"
+#include "sqlite_wrapper/format.h"
 
 namespace sqlite_wrapper
 {
@@ -95,13 +96,13 @@ namespace sqlite_wrapper
 
   namespace details
   {
-    [[nodiscard]] auto create_prepared_statement(const db_with_location& db, std::string_view sql) -> statement;
+    SQLITE_WRAPPER_EXPORT [[nodiscard]] auto create_prepared_statement(const db_with_location& db, std::string_view sql) -> statement;
 
-    void bind(const stmt_with_location& stmt, int index);
-    void bind(const stmt_with_location& stmt, int index, std::int64_t value);
-    void bind(const stmt_with_location& stmt, int index, double value);
-    void bind(const stmt_with_location& stmt, int index, std::string_view value);
-    void bind(const stmt_with_location& stmt, int index, const_byte_span value);
+    SQLITE_WRAPPER_EXPORT void bind(const stmt_with_location& stmt, int index);
+    SQLITE_WRAPPER_EXPORT void bind(const stmt_with_location& stmt, int index, std::int64_t value);
+    SQLITE_WRAPPER_EXPORT void bind(const stmt_with_location& stmt, int index, double value);
+    SQLITE_WRAPPER_EXPORT void bind(const stmt_with_location& stmt, int index, std::string_view value);
+    SQLITE_WRAPPER_EXPORT void bind(const stmt_with_location& stmt, int index, const_byte_span value);
 
     void bind(const stmt_with_location& stmt, int index, const integral_binding_type auto& param)
     {
@@ -140,10 +141,10 @@ namespace sqlite_wrapper
       index++;
     }
 
-    bool get_column(const stmt_with_location& stmt, int index, std::int64_t& value, bool maybe_null);
-    bool get_column(const stmt_with_location& stmt, int index, double& value, bool maybe_null);
-    bool get_column(const stmt_with_location& stmt, int index, std::string& value, bool maybe_null);
-    bool get_column(const stmt_with_location& stmt, int index, byte_vector& value, bool maybe_null);
+    SQLITE_WRAPPER_EXPORT bool get_column(const stmt_with_location& stmt, int index, std::int64_t& value, bool maybe_null);
+    SQLITE_WRAPPER_EXPORT bool get_column(const stmt_with_location& stmt, int index, double& value, bool maybe_null);
+    SQLITE_WRAPPER_EXPORT bool get_column(const stmt_with_location& stmt, int index, std::string& value, bool maybe_null);
+    SQLITE_WRAPPER_EXPORT bool get_column(const stmt_with_location& stmt, int index, byte_vector& value, bool maybe_null);
     
     void get_column(const stmt_with_location& stmt, int index, basic_database_type auto& value)
     {
@@ -173,7 +174,7 @@ namespace sqlite_wrapper
 
   }  // namespace details
 
-  [[nodiscard]] auto open(const std::string& file_name, const std::source_location& loc = std::source_location::current()) -> database;
+  SQLITE_WRAPPER_EXPORT [[nodiscard]] auto open(const std::string& file_name, const std::source_location& loc = std::source_location::current()) -> database;
 
   [[nodiscard]] auto create_prepared_statement(const db_with_location& db, std::string_view sql, const binding_type auto&... params) -> statement
   {
@@ -186,7 +187,7 @@ namespace sqlite_wrapper
     return stmt;
   }
 
-  [[nodiscard]] auto step(const stmt_with_location& stmt) -> bool;
+  SQLITE_WRAPPER_EXPORT [[nodiscard]] auto step(const stmt_with_location& stmt) -> bool;
 
   
   template <row_type Row>

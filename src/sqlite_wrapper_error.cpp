@@ -1,8 +1,8 @@
-#include "sqlite_wrapper_error.h"
+#include "sqlite_wrapper/error.h"
 
 #include <sqlite3.h>
 
-#include "sqlite_wrapper_format.h"
+#include "sqlite_wrapper/format.h"
 
 namespace sqlite_wrapper
 {

@@ -1,7 +1,7 @@
 ﻿// sqlite_wrapper.cpp : Defines the entry point for the application.
 //
 
-#include "sqlite_wrapper.h"
+#include "sqlite_wrapper/sqlite_wrapper.h"
 
 #include <iostream>
 #include <filesystem>
@@ -9,9 +9,9 @@
 
 #include <sqlite3.h>
 
-#include "sqlite_wrapper_error.h"
-#include "sqlite_wrapper_format.h"
-#include "sqlite_wrapper_create_table.h"
+#include "sqlite_wrapper/error.h"
+#include "sqlite_wrapper/format.h"
+#include "sqlite_wrapper/create_table.h"
 
 namespace sqlite_wrapper
 {
@@ -194,7 +194,7 @@ auto to_byte_vector(const std::string_view& str) -> sqlite_wrapper::byte_vector
   return {reinterpret_cast<const std::byte*>(str.data()), reinterpret_cast<const std::byte*>(str.data() + str.size())};
 }
 
-
+// TODO: remove or turn into unit-tests
 int main()
 {
   try

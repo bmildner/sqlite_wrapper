@@ -1,4 +1,4 @@
-#include "sqlite_wrapper_raii.h"
+#include "sqlite_wrapper/raii.h"
 
 #include <sqlite3.h>
 

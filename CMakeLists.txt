@@ -6,16 +6,26 @@ cmake_minimum_required (VERSION 3.8)
 # Enable Hot Reload for MSVC compilers if supported.
 if (POLICY CMP0141)
   cmake_policy(SET CMP0141 NEW)
-  set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
+  #set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
 endif()
 
 project ("sqlite_wrapper" VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
+option(BUILD_SHARED_LIBS "build shared library" ON)
+
 find_package(unofficial-sqlite3 CONFIG REQUIRED)    
-find_package(fmt CONFIG REQUIRED)
 find_package(GTest CONFIG REQUIRED)
 
+if (!MSVC)
+  find_package(fmt CONFIG REQUIRED)
+endif()
+
+SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin CACHE PATH "Directory where executeables and shared objects are dumped." FORCE)
+
+include(common.cmake)
+
 # Include sub-projects.
-add_subdirectory ("sqlite_wrapper")
+add_subdirectory ("src")
+add_subdirectory ("test")
