@@ -152,9 +152,7 @@ namespace sqlite_wrapper
 
     void get_column(const stmt_with_location& stmt, int index, optional_database_type auto& value)
     {
-      typename std::remove_reference_t<decltype(value)>::value_type base_value;
-
-      if (get_column(stmt, index, base_value, true))
+      if (typename std::remove_reference_t<decltype(value)>::value_type base_value; get_column(stmt, index, base_value, true))
       {
         value = base_value;
       }
@@ -165,7 +163,7 @@ namespace sqlite_wrapper
     }
 
     template <database_type... Columns>
-      requires(sizeof...(Columns) > 1)
+      requires(sizeof...(Columns) >= 1)
     void get_row(const stmt_with_location& stmt, Columns&... columns)
     {
       int index{0};
