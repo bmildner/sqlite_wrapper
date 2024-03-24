@@ -15,14 +15,14 @@ namespace sqlite_wrapper
 {
   namespace details
   {
-    struct SQLITE_WRAPPER_EXPORT database_deleter
+    struct database_deleter
     {
-      void operator()(::sqlite3* db) const noexcept;
+      SQLITE_WRAPPER_EXPORT void operator()(::sqlite3* db) const noexcept;
     };
 
-    struct SQLITE_WRAPPER_EXPORT statement_deleter
+    struct statement_deleter
     {
-      void operator()(::sqlite3_stmt* stmt) const noexcept;
+      SQLITE_WRAPPER_EXPORT void operator()(::sqlite3_stmt* stmt) const noexcept;
     };
   }  // namespace details
 

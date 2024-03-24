@@ -2,33 +2,16 @@
 #include <gmock/gmock.h>
 
 #include <filesystem>
-#include <memory>
 
 #include "sqlite_wrapper/sqlite_wrapper.h"
 
-#define ASSERT_THROW_MSG(statement, expected_exception, matcher)                          \
-  try                                                                                     \
-  {                                                                                       \
-    statement;                                                                            \
-    FAIL() << "Expected: " #statement " throws an exception of type " #expected_exception \
-              ".\n"                                                                       \
-              "  Actual: it throws nothing.";                                             \
-  }                                                                                       \
-  catch (const expected_exception& e)                                                     \
-  {                                                                                       \
-    ASSERT_THAT(std::string{e.what()}, matcher);                                          \
-  }                                                                                       \
-  catch (...)                                                                             \
-  {                                                                                       \
-    FAIL() << "Expected: " #statement " throws an exception of type " #expected_exception \
-              ".\n"                                                                       \
-              "  Actual: it throws a different type.";                                    \
-  }
+#include "assert_throw_msg.h"
 
 using ::testing::Test;
 using ::testing::StartsWith;
 using ::testing::EndsWith;
 using ::testing::AllOf;
+using ::testing::HasSubstr;
 
 namespace
 {
@@ -71,6 +54,8 @@ TEST_F(sqlite_wrapper_tests, open)
 
 TEST_F(sqlite_wrapper_tests, open_failes)
 {
-  ASSERT_THROW_MSG(sqlite_wrapper::open(std::string("___") + temp_db_file_name.string()), sqlite_wrapper::sqlite_error, 
-    AllOf(StartsWith("failed to open database"), EndsWith("failed with unable to open database file")));
+  const auto bad_db_file_name{std::string("___") + temp_db_file_name.string()};
+
+  ASSERT_THROW_MSG(sqlite_wrapper::open(bad_db_file_name), sqlite_wrapper::sqlite_error,
+    AllOf(StartsWith("failed to open database"), HasSubstr(bad_db_file_name), EndsWith("failed with unable to open database file")));
 }

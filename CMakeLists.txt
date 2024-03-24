@@ -13,8 +13,6 @@ project ("sqlite_wrapper" VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
-option(BUILD_SHARED_LIBS "build shared library" ON)
-
 find_package(unofficial-sqlite3 CONFIG REQUIRED)    
 find_package(GTest CONFIG REQUIRED)
 

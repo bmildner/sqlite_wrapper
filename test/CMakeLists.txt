@@ -1,8 +1,13 @@
 enable_testing()
 
-add_executable (tests_runner "sqlite_wrapper_tests.cpp" "test_runner.cpp")
+add_executable(test_runner "test_runner.cpp" "sqlite_wrapper_tests.cpp" "assert_throw_msg.h")
 
-target_link_libraries(tests_runner PRIVATE common_target_settings sqlite_wrapper GTest::gtest GTest::gmock)
+target_link_libraries(test_runner PRIVATE common_target_settings sqlite_wrapper GTest::gtest)
+
+
+add_executable(test_runner_mocked "test_runner.cpp" "sqlite_wrapper_tests_mocked.cpp" "assert_throw_msg.h")
+
+target_link_libraries(test_runner_mocked PRIVATE common_target_settings sqlite_wrapper_static GTest::gtest)
 
 #add_test(AllTestsInMain tests)
 
