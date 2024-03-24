@@ -195,7 +195,7 @@ auto to_byte_vector(const std::string_view& str) -> sqlite_wrapper::byte_vector
 }
 
 // TODO: remove or turn into unit-tests
-int main()
+int XXXmain()
 {
   try
   {

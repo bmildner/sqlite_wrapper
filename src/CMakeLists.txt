@@ -27,7 +27,11 @@ add_library(sqlite_wrapper_static STATIC ${SRC})
 
 target_include_directories(sqlite_wrapper_static PUBLIC "../include")
 
-target_link_libraries(sqlite_wrapper_static PRIVATE common_target_settings unofficial::sqlite3::sqlite3)
+target_link_libraries(sqlite_wrapper_static PRIVATE common_target_settings)
+
+target_include_directories(sqlite_wrapper_static PRIVATE ${SQLITE3_INCLUDES})
+
+target_compile_definitions(sqlite_wrapper_static PUBLIC SQLITE_API=)
 
 if (!MSVC)
   target_link_libraries(sqlite_wrapper_static PRIVATE fmt::fmt)
