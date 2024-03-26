@@ -1,5 +1,7 @@
 #pragma once
 
+#include <gmock/gmock.h>
+
 #include <concepts>
 #include <type_traits>
 #include <memory>
@@ -11,7 +13,10 @@ namespace sqlite_wrapper::mocks
   concept mock = std::is_class_v<T> && std::has_virtual_destructor_v<T>;
 
   template <mock Mock>
-  using mock_ptr = std::shared_ptr<Mock>;
+  using strict_mock = testing::StrictMock<Mock>;
+
+  template <mock Mock>
+  using mock_ptr = std::shared_ptr<strict_mock<Mock>>;
 
   namespace details
   {
@@ -52,8 +57,18 @@ namespace sqlite_wrapper::mocks
     }
   }
 
+  template <mock Mock, typename... Args>
+  auto create_and_set_global_mock(Args&&... args) -> mock_ptr<Mock>
+  {
+    const auto ptr{std::make_shared<strict_mock<Mock>>(std::forward<Args>(args)...)};
+
+    set_global_mock(ptr);
+
+    return ptr;
+  }
+
   template <mock Mock>
-  auto get_global_mock() -> const std::shared_ptr<Mock>&
+  auto get_global_mock() -> const mock_ptr<Mock>&
   {
     const auto& ptr{details::get_set_reset_global_mock<Mock>(nullptr, false)};
 

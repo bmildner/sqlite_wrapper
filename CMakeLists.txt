@@ -18,7 +18,7 @@ get_target_property(SQLITE3_INCLUDES unofficial::sqlite3::sqlite3 INTERFACE_INCL
 
 find_package(GTest CONFIG REQUIRED)
 
-if (!MSVC)
+if (NOT DEFINED MSVC)
   find_package(fmt CONFIG REQUIRED)
 endif()
 

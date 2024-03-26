@@ -12,9 +12,9 @@
 using sqlite_wrapper::mocks::sqlite3_mock;
 using sqlite3_mock_ptr = sqlite_wrapper::mocks::mock_ptr<sqlite3_mock>;
 
-using sqlite_wrapper::mocks::set_global_mock;
 using sqlite_wrapper::mocks::reset_global_mock;
 constexpr auto get_mock{[] { return sqlite_wrapper::mocks::get_global_mock<sqlite3_mock>(); }};
+constexpr auto create_and_set_global_mock{[] { return sqlite_wrapper::mocks::create_and_set_global_mock<sqlite3_mock>(); }};
 
 using testing::Mock;
 using testing::Test;
@@ -43,7 +43,7 @@ namespace
 
   void sqlite_wrapper_mocked_tests::SetUp()
   {   
-    set_global_mock(std::make_shared<sqlite3_mock>());
+    create_and_set_global_mock();
   }
 
   void sqlite_wrapper_mocked_tests::TearDown()
@@ -66,9 +66,15 @@ TEST_F(sqlite_wrapper_mocked_tests, open_success)
 
 TEST_F(sqlite_wrapper_mocked_tests, open_fails)
 {
-  EXPECT_CALL(*get_mock(), sqlite3_open(StrEq(db_file_name), NotNull())).WillOnce(Return(SQLITE_ERROR));
+  EXPECT_CALL(*get_mock(), sqlite3_open(StrEq(db_file_name), NotNull()))
+    .WillOnce(Return(SQLITE_INTERNAL))
+    .WillOnce(DoAll(SetArgPointee<1>(nullptr), Return(SQLITE_OK)));
+  EXPECT_CALL(*get_mock(), sqlite3_errstr(SQLITE_INTERNAL)).WillOnce(Return("SQLITE_INTERNAL"));
   EXPECT_CALL(*get_mock(), sqlite3_errstr(SQLITE_ERROR)).WillOnce(Return("SQLITE_ERROR"));
 
   ASSERT_THROW_MSG((void) sqlite_wrapper::open(db_file_name), sqlite_wrapper::sqlite_error,
-    AllOf(StartsWith(sqlite_wrapper::format("sqlite3_open() failed to open database \"{}\"", db_file_name)), HasSubstr("SQLITE_ERROR")));
+    AllOf(StartsWith(sqlite_wrapper::format("sqlite3_open() failed to open database \"{}\"", db_file_name)), HasSubstr("SQLITE_INTERNAL")));
+
+  ASSERT_THROW_MSG((void)sqlite_wrapper::open(db_file_name), sqlite_wrapper::sqlite_error,
+    AllOf(StartsWith(sqlite_wrapper::format("sqlite3_open() returned nullptr for database \"{}\"", db_file_name)), HasSubstr("SQLITE_ERROR")));
 }
