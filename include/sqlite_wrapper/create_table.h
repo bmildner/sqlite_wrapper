@@ -63,7 +63,7 @@ namespace sqlite_wrapper
   template<column_type T>
   struct column
   {
-    column(std::string_view name) requires !details::is_foreign_key<T>
+    column(std::string_view name) requires (!details::is_foreign_key<T>)
       :name(name)
     {}
 
