@@ -13,3 +13,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(common_target_settings INTERFACE /fsanitize=address)
   endif()
 endif()
+
+if (!MSVC)
+  target_link_libraries(common_target_settings INTERFACE fmt::fmt)
+endif()

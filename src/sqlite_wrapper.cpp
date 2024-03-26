@@ -168,7 +168,12 @@ namespace sqlite_wrapper
 
     if (const auto result{::sqlite3_open(file_name.c_str(), &db)}; result != SQLITE_OK)
     {
-      throw sqlite_error(sqlite_wrapper::format("failed to open database \"{}\"", file_name), result, loc);
+      throw sqlite_error(sqlite_wrapper::format("sqlite3_open() failed to open database \"{}\"", file_name), result, loc);
+    }
+
+    if (db == nullptr)
+    {
+      throw sqlite_error(sqlite_wrapper::format("sqlite3_open() returned nullptr for database \"{}\"", file_name), SQLITE_ERROR, loc);
     }
 
     return database{db};
