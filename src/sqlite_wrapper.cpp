@@ -257,7 +257,7 @@ int XXXmain()
     stmt = sqlite_wrapper::create_prepared_statement(database.get(), sql, nullptr);
     stmt = sqlite_wrapper::create_prepared_statement(database.get(), sql, std::nullopt);
     stmt = sqlite_wrapper::create_prepared_statement(database.get(), sql, 1.23);
-    stmt = sqlite_wrapper::create_prepared_statement(database.get(), sql, float{1.23});
+    stmt = sqlite_wrapper::create_prepared_statement(database.get(), sql, 1.23f);
     stmt = sqlite_wrapper::create_prepared_statement(database.get(), sql, "fgsdfg");
     stmt = sqlite_wrapper::create_prepared_statement(database.get(), sql, std::string("fgsdfg"));
 

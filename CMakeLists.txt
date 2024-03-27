@@ -33,7 +33,7 @@ else()
 endif()
 
 if (NOT DEFINED MSVC)
-  set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY})
+  set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY}; -extra-arg=-Wno-unknown-warning-option)
 endif()
 
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON CACHE BOOL "Treat all warnings as errors." FORCE)
