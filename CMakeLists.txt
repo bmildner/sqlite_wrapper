@@ -32,10 +32,8 @@ else()
   find_program(CLANG_TIDY NAMES clang-tidy clang-tidy-*)
 endif()
 
-if (DEFINED CLANG_TIDY)
+if (NOT DEFINED MSVC)
   set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY})
-else()
-  message(WARNING "Did not find clang-tidy!")
 endif()
 
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON CACHE BOOL "Treat all warnings as errors." FORCE)

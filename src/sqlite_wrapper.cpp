@@ -231,7 +231,7 @@ int XXXmain()
                                            sqlite_wrapper::column<double>("double"),
                                            sqlite_wrapper::column<std::optional<sqlite_wrapper::byte_vector>>("blob")) };
 
-    decltype(test_table)::full_row row;
+    decltype(test_table)::full_row the_row;
 
     auto other_table{ sqlite_wrapper::table("other_table",
                         sqlite_wrapper::column<sqlite_wrapper::primary_key>("pk_other_table"),

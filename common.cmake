@@ -6,6 +6,10 @@ set_target_properties(common_target_settings PROPERTIES C_VISIBILITY_PRESET hidd
 set_target_properties(common_target_settings PROPERTIES CXX_VISIBILITY_PRESET hidden)
 
 if (DEFINED MSVC)
+  # remove all /Wx to avoid warnings due to multiple /Wx ...
+  if(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
+    string(REGEX REPLACE "/W[0-9]" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  endif()
   target_compile_options(common_target_settings INTERFACE /W4)
   set_target_properties(common_target_settings PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
 else()
