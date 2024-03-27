@@ -176,7 +176,7 @@ namespace sqlite_wrapper
       case open_flags::open_only:
         break;
       default:
-        throw sqlite_error(sqlite_wrapper::format("invalid open_flags value  \"{}\"", fmt::underlying(flags)), SQLITE_ERROR, loc);
+        throw sqlite_error(sqlite_wrapper::format("invalid open_flags value  \"{}\"", to_underlying(flags)), SQLITE_ERROR, loc);
     }
 
     if (const auto result{::sqlite3_open_v2(file_name.c_str(), &db, sqlite_flags, nullptr)}; result != SQLITE_OK)
