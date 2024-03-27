@@ -4,9 +4,9 @@
 using sqlite_wrapper::mocks::sqlite3_mock;
 using sqlite_wrapper::mocks::get_global_mock;
 
-int sqlite3_open(const char* filename, sqlite3** ppDb)
+int sqlite3_open_v2(const char *filename, sqlite3 **ppDb, int flags, const char* zVfs)
 {
-  return get_global_mock<sqlite3_mock>()->sqlite3_open(filename, ppDb);
+  return get_global_mock<sqlite3_mock>()->sqlite3_open_v2(filename, ppDb, flags, zVfs);
 }
 
 int sqlite3_close(sqlite3* pDb)

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
 #define ASSERT_THROW_MSG(statement, expected_exception, matcher)                          \
   try                                                                                     \
@@ -13,6 +14,10 @@
   catch (const expected_exception& e)                                                     \
   {                                                                                       \
     ASSERT_THAT(std::string{e.what()}, matcher);                                          \
+  }                                                                                       \
+  catch (const testing::AssertionException&)                                              \
+  {                                                                                       \
+    /* we need to ignore testing::AssertionException because FAIL() might throw them! */  \
   }                                                                                       \
   catch (...)                                                                             \
   {                                                                                       \

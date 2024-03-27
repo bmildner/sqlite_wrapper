@@ -2,8 +2,6 @@
 
 #include <source_location>
 
-#include "sqlite_wrapper/raii.h"
-
 namespace sqlite_wrapper
 {
   template <typename T>
@@ -20,7 +18,4 @@ namespace sqlite_wrapper
     T value;
     std::source_location location;
   };
-
-  using db_with_location = with_location<sqlite3*>;
-  using stmt_with_location = with_location<sqlite3_stmt*>;
 }  // namespace sqlite_wrapper

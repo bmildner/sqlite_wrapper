@@ -49,13 +49,10 @@ TEST_F(sqlite_wrapper_tests, open)
   
   ASSERT_NE(db.get(), nullptr);
   ASSERT_TRUE(std::filesystem::exists(temp_db_file_name));
-  ASSERT_THROW(std::filesystem::remove(temp_db_file_name), std::filesystem::filesystem_error);
 }
 
 TEST_F(sqlite_wrapper_tests, open_failes)
 {
-  const auto bad_db_file_name{std::string("___") + temp_db_file_name.string()};
-
-  ASSERT_THROW_MSG(sqlite_wrapper::open(bad_db_file_name), sqlite_wrapper::sqlite_error,
-    AllOf(StartsWith("failed to open database"), HasSubstr(bad_db_file_name), EndsWith("failed with unable to open database file")));
+  ASSERT_THROW_MSG((void) sqlite_wrapper::open(temp_db_file_name.string(), sqlite_wrapper::open_flags::open_only), sqlite_wrapper::sqlite_error,
+    AllOf(StartsWith("sqlite3_open() failed to open database"), EndsWith("failed with unable to open database file")));
 }

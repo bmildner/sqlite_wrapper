@@ -174,7 +174,13 @@ namespace sqlite_wrapper
 
   }  // namespace details
 
-  SQLITE_WRAPPER_EXPORT [[nodiscard]] auto open(const std::string& file_name, const std::source_location& loc = std::source_location::current()) -> database;
+  enum class open_flags {open_or_create = 0, open_only};
+  SQLITE_WRAPPER_EXPORT [[nodiscard]] auto open(const std::string& file_name, open_flags flags, const std::source_location& loc = std::source_location::current()) -> database;
+
+  [[nodiscard]] inline auto open(const std::string& file_name, const std::source_location& loc = std::source_location::current()) -> database
+  {
+    return open(file_name, open_flags::open_or_create, loc);
+  }
 
   [[nodiscard]] auto create_prepared_statement(const db_with_location& db, std::string_view sql, const binding_type auto&... params) -> statement
   {

@@ -12,7 +12,7 @@ namespace sqlite_wrapper::mocks
   public:
     virtual ~sqlite3_mock() = default;
 
-    MOCK_METHOD(int, sqlite3_open, (const char* filename, sqlite3** ppDb), (const));
+    MOCK_METHOD(int, sqlite3_open_v2, (const char *filename, sqlite3 **ppDb, int flags, const char* zVfs), (const));
     MOCK_METHOD(int, sqlite3_close, (sqlite3* pDb), (const));
 
     MOCK_METHOD(const char*, sqlite3_errmsg, (sqlite3* pDb), (const));

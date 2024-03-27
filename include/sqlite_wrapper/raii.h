@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "sqlite_wrapper/config.h"
+#include "sqlite_wrapper/location.h"
 
 // forward declarations of sqlite3 (pimpl) types
 extern "C"
@@ -29,4 +30,6 @@ namespace sqlite_wrapper
   using database = std::unique_ptr<::sqlite3, details::database_deleter>;
   using statement = std::unique_ptr<::sqlite3_stmt, details::statement_deleter>;
 
+  using db_with_location = with_location<sqlite3*>;
+  using stmt_with_location = with_location<sqlite3_stmt*>;
 }  // namespace sqlite_wrapper

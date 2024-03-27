@@ -4,7 +4,7 @@
 #include <source_location>
 
 #include "sqlite_wrapper/config.h"
-#include "sqlite_wrapper/location.h"
+#include "sqlite_wrapper/raii.h"
 
 namespace sqlite_wrapper
 {

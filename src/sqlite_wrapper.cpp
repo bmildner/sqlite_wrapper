@@ -162,12 +162,29 @@ namespace sqlite_wrapper
     }
   }  // namespace details
 
-  auto open(const std::string& file_name, const std::source_location& loc) -> database
+  auto open(const std::string& file_name, open_flags flags, const std::source_location& loc) -> database
   {
     sqlite3* db{nullptr};
 
-    if (const auto result{::sqlite3_open(file_name.c_str(), &db)}; result != SQLITE_OK)
+    int sqlite_flags = SQLITE_OPEN_READWRITE;
+
+    switch (flags)
     {
+      case open_flags::open_or_create:
+        sqlite_flags |= SQLITE_OPEN_CREATE;
+        break;
+      case open_flags::open_only:
+        break;
+      default:
+        throw sqlite_error(sqlite_wrapper::format("invalid open_flags value  \"{}\"", fmt::underlying(flags)), SQLITE_ERROR, loc);
+    }
+
+    if (const auto result{::sqlite3_open_v2(file_name.c_str(), &db, sqlite_flags, nullptr)}; result != SQLITE_OK)
+    {
+      if (db != nullptr)
+      {
+        ::sqlite3_close(db);
+      }
       throw sqlite_error(sqlite_wrapper::format("sqlite3_open() failed to open database \"{}\"", file_name), result, loc);
     }
 

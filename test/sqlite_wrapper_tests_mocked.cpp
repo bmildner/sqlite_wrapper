@@ -58,7 +58,8 @@ namespace
 
 TEST_F(sqlite_wrapper_mocked_tests, open_success)
 {
-  EXPECT_CALL(*get_mock(), sqlite3_open(StrEq(db_file_name), NotNull())).WillOnce(DoAll(SetArgPointee<1>(db_ptr), Return(SQLITE_OK)));
+  EXPECT_CALL(*get_mock(), sqlite3_open_v2(StrEq(db_file_name), NotNull(), SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr))
+  .WillOnce(DoAll(SetArgPointee<1>(db_ptr), Return(SQLITE_OK)));
   EXPECT_CALL(*get_mock(), sqlite3_close(Eq(db_ptr))).Times(1);
 
   ASSERT_EQ(sqlite_wrapper::open(db_file_name).get(), db_ptr);
@@ -66,7 +67,7 @@ TEST_F(sqlite_wrapper_mocked_tests, open_success)
 
 TEST_F(sqlite_wrapper_mocked_tests, open_fails)
 {
-  EXPECT_CALL(*get_mock(), sqlite3_open(StrEq(db_file_name), NotNull()))
+  EXPECT_CALL(*get_mock(), sqlite3_open_v2(StrEq(db_file_name), NotNull(), SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr))
     .WillOnce(Return(SQLITE_INTERNAL))
     .WillOnce(DoAll(SetArgPointee<1>(nullptr), Return(SQLITE_OK)));
   EXPECT_CALL(*get_mock(), sqlite3_errstr(SQLITE_INTERNAL)).WillOnce(Return("SQLITE_INTERNAL"));

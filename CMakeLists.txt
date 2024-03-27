@@ -22,7 +22,9 @@ if (NOT DEFINED MSVC)
   find_package(fmt CONFIG REQUIRED)
 endif()
 
-SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin CACHE PATH "Directory where executeables and shared objects are dumped." FORCE)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin CACHE PATH "Directory where executeables and shared objects are dumped." FORCE)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib CACHE PATH "Directory where executeables and shared objects are dumped." FORCE)
+set(CMAKE_BUILD_RPATH ${PROJECT_BINARY_DIR}/lib CACHE PATH "Directory where executeables and shared objects are dumped." FORCE)
 
 include(common.cmake)
 
