@@ -96,7 +96,7 @@ namespace sqlite_wrapper
 
   namespace details
   {
-    SQLITE_WRAPPER_EXPORT [[nodiscard]] auto create_prepared_statement(const db_with_location& db, std::string_view sql) -> statement;
+    [[nodiscard]] SQLITE_WRAPPER_EXPORT auto create_prepared_statement(const db_with_location& database, std::string_view sql) -> statement;
 
     SQLITE_WRAPPER_EXPORT void bind(const stmt_with_location& stmt, int index);
     SQLITE_WRAPPER_EXPORT void bind(const stmt_with_location& stmt, int index, std::int64_t value);
@@ -141,10 +141,10 @@ namespace sqlite_wrapper
       index++;
     }
 
-    SQLITE_WRAPPER_EXPORT bool get_column(const stmt_with_location& stmt, int index, std::int64_t& value, bool maybe_null);
-    SQLITE_WRAPPER_EXPORT bool get_column(const stmt_with_location& stmt, int index, double& value, bool maybe_null);
-    SQLITE_WRAPPER_EXPORT bool get_column(const stmt_with_location& stmt, int index, std::string& value, bool maybe_null);
-    SQLITE_WRAPPER_EXPORT bool get_column(const stmt_with_location& stmt, int index, byte_vector& value, bool maybe_null);
+    SQLITE_WRAPPER_EXPORT auto get_column(const stmt_with_location& stmt, int index, std::int64_t& value, bool maybe_null) -> bool;
+    SQLITE_WRAPPER_EXPORT auto get_column(const stmt_with_location& stmt, int index, double& value, bool maybe_null) -> bool;
+    SQLITE_WRAPPER_EXPORT auto get_column(const stmt_with_location& stmt, int index, std::string& value, bool maybe_null) -> bool;
+    SQLITE_WRAPPER_EXPORT auto get_column(const stmt_with_location& stmt, int index, byte_vector& value, bool maybe_null) -> bool;
     
     void get_column(const stmt_with_location& stmt, int index, basic_database_type auto& value)
     {
@@ -174,8 +174,8 @@ namespace sqlite_wrapper
 
   }  // namespace details
 
-  enum class open_flags {open_or_create = 0, open_only};
-  SQLITE_WRAPPER_EXPORT [[nodiscard]] auto open(const std::string& file_name, open_flags flags, const std::source_location& loc = std::source_location::current()) -> database;
+  enum class open_flags : std::size_t {open_or_create = 0, open_only};
+  [[nodiscard]] SQLITE_WRAPPER_EXPORT auto open(const std::string& file_name, open_flags flags, const std::source_location& loc = std::source_location::current()) -> database;
 
   [[nodiscard]] inline auto open(const std::string& file_name, const std::source_location& loc = std::source_location::current()) -> database
   {
@@ -186,14 +186,14 @@ namespace sqlite_wrapper
   {
     auto stmt{details::create_prepared_statement(db, sql)};
 
-    int index{1};
+    [[maybe_unused]] int index{1};
 
     (details::bind_and_increment_index({stmt.get(), db.location}, index, params), ...);
 
     return stmt;
   }
 
-  SQLITE_WRAPPER_EXPORT [[nodiscard]] auto step(const stmt_with_location& stmt) -> bool;
+  [[nodiscard]] SQLITE_WRAPPER_EXPORT auto step(const stmt_with_location& stmt) -> bool;
 
   
   template <row_type Row>

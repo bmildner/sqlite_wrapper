@@ -6,7 +6,11 @@ set_target_properties(common_target_settings PROPERTIES C_VISIBILITY_PRESET hidd
 set_target_properties(common_target_settings PROPERTIES CXX_VISIBILITY_PRESET hidden)
 
 if (DEFINED MSVC)
-    set_target_properties(common_target_settings PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
+  target_compile_options(common_target_settings INTERFACE /W4)
+  set_target_properties(common_target_settings PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
+else()
+  target_compile_options(common_target_settings INTERFACE -Wall -Wextra -Wpedantic)
+  target_link_libraries(common_target_settings INTERFACE fmt::fmt)
 endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -16,8 +20,4 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   else()
     target_compile_options(common_target_settings INTERFACE /fsanitize=address)
   endif()
-endif()
-
-if (NOT DEFINED MSVC)
-  target_link_libraries(common_target_settings INTERFACE fmt::fmt)
 endif()

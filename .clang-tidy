@@ -1,0 +1,19 @@
+---
+Checks: '*
+  -cert-err58-cpp
+  -altera-*
+  -android-*
+  -darwin-*  
+  -fuchsia-*
+  -google-*
+  -linuxkernel-*  
+  -llvm-*
+  -llvmlibc-*  
+  -mpi-*  
+  -objc-*  
+  -openmp-* 
+  -zircon-*'
+WarningsAsErrors:    '*'
+HeaderFilterRegex:   ''
+FormatStyle:         none
+InheritParentConfig: true

@@ -15,16 +15,16 @@ namespace sqlite_wrapper
         return "";
       }
 
-      const auto err_str{::sqlite3_errstr(error)};
+      const auto* err_str{::sqlite3_errstr(error)};
 
       return (err_str != nullptr) ? err_str : sqlite_wrapper::format("<unknown value: {}>", error);
     }
 
-    auto error_to_string(sqlite3* db, int error) -> std::string
+    auto error_to_string(sqlite3* raw_db_handle, int error) -> std::string
     {
-      const auto err_msg{(db != nullptr) ? ::sqlite3_errmsg(db) : nullptr};
+      const auto* err_msg{(raw_db_handle != nullptr) ? ::sqlite3_errmsg(raw_db_handle) : nullptr};
 
-      if (err_msg)
+      if (err_msg != nullptr)
       {
         return sqlite_wrapper::format("{} {}", err_msg, error_code_to_string(error));
       }
@@ -34,14 +34,14 @@ namespace sqlite_wrapper
 
     auto error_to_string(sqlite3_stmt* stmt, int error) -> std::string
     {
-      const auto sql_str{::sqlite3_sql(stmt)};
+      const auto* sql_str{::sqlite3_sql(stmt)};
 
       return sqlite_wrapper::format("{} for SQL \"{}\"", error_to_string(::sqlite3_db_handle(stmt), error), (sql_str != nullptr) ? sql_str : "<nullptr>");
     }
   }  // unnamed namespace
 
-  sqlite_error::sqlite_error(const std::string& what, const db_with_location& db, int error)
-    : std::runtime_error(sqlite_wrapper::format("{}, failed with {}", what, error_to_string(db.value, error))), m_location(db.location)
+  sqlite_error::sqlite_error(const std::string& what, const db_with_location& database, int error)
+    : std::runtime_error(sqlite_wrapper::format("{}, failed with {}", what, error_to_string(database.value, error))), m_location(database.location)
   {}
 
   sqlite_error::sqlite_error(const std::string& what, const stmt_with_location& stmt, int error)

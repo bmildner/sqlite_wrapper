@@ -36,6 +36,11 @@ namespace
     sqlite_wrapper_mocked_tests() = default;
     ~sqlite_wrapper_mocked_tests() override = default;
 
+    sqlite_wrapper_mocked_tests(const sqlite_wrapper_mocked_tests& other) = delete;
+    sqlite_wrapper_mocked_tests(sqlite_wrapper_mocked_tests&& other) noexcept = delete;
+    auto operator=(const sqlite_wrapper_mocked_tests& other) -> sqlite_wrapper_mocked_tests& = delete;
+    auto operator=(sqlite_wrapper_mocked_tests&& other) noexcept -> sqlite_wrapper_mocked_tests& = delete;
+
     void SetUp() override;
 
     void TearDown() override;
@@ -53,16 +58,23 @@ namespace
   }
 
   constexpr auto* db_file_name{"db file name"};
-  sqlite3*const db_ptr{const_cast<sqlite3* const>(reinterpret_cast<const sqlite3*>(db_file_name))};
 }  // unnamed namespace
+
+extern "C"
+struct sqlite3
+{
+  int i{};
+};
 
 TEST_F(sqlite_wrapper_mocked_tests, open_success)
 {
-  EXPECT_CALL(*get_mock(), sqlite3_open_v2(StrEq(db_file_name), NotNull(), SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr))
-  .WillOnce(DoAll(SetArgPointee<1>(db_ptr), Return(SQLITE_OK)));
-  EXPECT_CALL(*get_mock(), sqlite3_close(Eq(db_ptr))).Times(1);
+  sqlite3 database;
 
-  ASSERT_EQ(sqlite_wrapper::open(db_file_name).get(), db_ptr);
+  EXPECT_CALL(*get_mock(), sqlite3_open_v2(StrEq(db_file_name), NotNull(), SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr))
+  .WillOnce(DoAll(SetArgPointee<1>(&database), Return(SQLITE_OK)));
+  EXPECT_CALL(*get_mock(), sqlite3_close(Eq(&database))).Times(1);
+
+  ASSERT_EQ(sqlite_wrapper::open(db_file_name).get(), &database);
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, open_fails)

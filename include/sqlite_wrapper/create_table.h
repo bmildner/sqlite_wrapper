@@ -2,6 +2,7 @@
 
 #include "sqlite_wrapper.h"
 
+// TODO: cleanup or remove all togther!
 namespace sqlite_wrapper
 {
   template<typename... Args>
@@ -70,7 +71,9 @@ namespace sqlite_wrapper
     template <column_type... columns>
     column(std::string_view name, table<columns...> f_table) requires details::is_foreign_key<T>
       : name(name)
-    {}
+    {
+      (void) f_table;
+    }
 
     using type = typename details::to_database_type<T>;
 
@@ -89,7 +92,9 @@ namespace sqlite_wrapper
 
     table(std::string_view name, const column<Column_types>&... col)
       :name(name)
-    {}
+    {
+      ((void) col, ...);
+    }
 
     std::string_view name;
 

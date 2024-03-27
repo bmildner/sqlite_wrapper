@@ -11,7 +11,6 @@ using ::testing::Test;
 using ::testing::StartsWith;
 using ::testing::EndsWith;
 using ::testing::AllOf;
-using ::testing::HasSubstr;
 
 namespace
 {
@@ -19,10 +18,16 @@ namespace
 
   class sqlite_wrapper_tests : public Test
   {
-  protected:
+  public:
     sqlite_wrapper_tests();
     ~sqlite_wrapper_tests() override;
 
+    sqlite_wrapper_tests(const sqlite_wrapper_tests& other) = delete;
+    sqlite_wrapper_tests(sqlite_wrapper_tests&& other) noexcept = delete;
+    auto operator=(const sqlite_wrapper_tests& other) -> sqlite_wrapper_tests& = delete;
+    auto operator=(sqlite_wrapper_tests&& other) noexcept -> sqlite_wrapper_tests& = delete;
+
+  protected:
     void SetUp() override;
 
     void TearDown() override;
@@ -45,9 +50,9 @@ namespace
 
 TEST_F(sqlite_wrapper_tests, open)
 {
-  auto db{sqlite_wrapper::open(temp_db_file_name.string())};
+  auto database{sqlite_wrapper::open(temp_db_file_name.string())};
   
-  ASSERT_NE(db.get(), nullptr);
+  ASSERT_NE(database.get(), nullptr);
   ASSERT_TRUE(std::filesystem::exists(temp_db_file_name));
 }
 

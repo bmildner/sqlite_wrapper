@@ -9,21 +9,19 @@
 
 #include <sqlite3.h>
 
-#include "sqlite_wrapper/error.h"
-#include "sqlite_wrapper/format.h"
 #include "sqlite_wrapper/create_table.h"
 
 namespace sqlite_wrapper
 {
   namespace details
   {
-    auto create_prepared_statement(const db_with_location& db, std::string_view sql) -> statement
+    auto create_prepared_statement(const db_with_location& database, std::string_view sql) -> statement
     {
       sqlite3_stmt* stmt{ nullptr };
 
-      if (const auto result{ ::sqlite3_prepare_v2(db.value, sql.data(), static_cast<int>(sql.size()), &stmt, nullptr) }; (result != SQLITE_OK) || (stmt == nullptr))
+      if (const auto result{ ::sqlite3_prepare_v2(database.value, sql.data(), static_cast<int>(sql.size()), &stmt, nullptr) }; (result != SQLITE_OK) || (stmt == nullptr))
       {
-        throw sqlite_error(sqlite_wrapper::format("failed to create prepated statement \"{}\"", sql), db, result);
+        throw sqlite_error(sqlite_wrapper::format("failed to create prepated statement \"{}\"", sql), database, result);
       }
 
       return statement{ stmt };
@@ -69,7 +67,7 @@ namespace sqlite_wrapper
       }
     }
 
-    bool check_null_and_column_type(const stmt_with_location& stmt, int index, int expected_type, bool maybe_null)
+    auto check_null_and_column_type(const stmt_with_location& stmt, int index, int expected_type, bool maybe_null) -> bool
     {
       const auto type{sqlite3_column_type(stmt.value, index)};
 
@@ -79,10 +77,8 @@ namespace sqlite_wrapper
         {
           return false;
         }
-        else
-        {
-          throw sqlite_error(sqlite_wrapper::format("column at index {} must not be NULL", index), stmt, SQLITE_MISMATCH);
-        }
+
+        throw sqlite_error(sqlite_wrapper::format("column at index {} must not be NULL", index), stmt, SQLITE_MISMATCH);
       }
 
       if (type != expected_type)
@@ -93,7 +89,7 @@ namespace sqlite_wrapper
       return true;
     }
 
-    bool get_column(const stmt_with_location& stmt, int index, std::int64_t& value, bool maybe_null)
+    auto get_column(const stmt_with_location& stmt, int index, std::int64_t& value, bool maybe_null) -> bool
     {
       if (!details::check_null_and_column_type(stmt, index, SQLITE_INTEGER, maybe_null))
       {
@@ -105,7 +101,7 @@ namespace sqlite_wrapper
       return true;
     }
 
-    bool get_column(const stmt_with_location& stmt, int index, double& value, bool maybe_null)
+    auto get_column(const stmt_with_location& stmt, int index, double& value, bool maybe_null) -> bool
     {
       if (!details::check_null_and_column_type(stmt, index, SQLITE_FLOAT, maybe_null))
       {
@@ -117,13 +113,14 @@ namespace sqlite_wrapper
       return true;
     }
 
-    bool get_column(const stmt_with_location& stmt, int index, std::string& value, bool maybe_null)
+    auto get_column(const stmt_with_location& stmt, int index, std::string& value, bool maybe_null) -> bool
     {
       if (!details::check_null_and_column_type(stmt, index, SQLITE_TEXT, maybe_null))
       {
         return false;
       }
 
+      // NOLINTNEXTLINE [cppcoreguidelines-pro-type-reinterpret-cast]
       const auto* str{reinterpret_cast<const char*>(sqlite3_column_text(stmt.value, index))};
       const auto length{static_cast<std::size_t>(sqlite3_column_bytes(stmt.value, index))};
 
@@ -132,20 +129,19 @@ namespace sqlite_wrapper
         throw sqlite_error(sqlite_wrapper::format("sqlite3_column_text() for index {} returned nullptr", index), stmt, SQLITE_NOMEM);
       }
 
-      value.clear();
-      value.reserve(length);
-      value.insert(value.cbegin(), str, str + length);
+      value = std::string{str, length};
 
       return true;
     }
 
-    bool get_column(const stmt_with_location& stmt, int index, byte_vector& value, bool maybe_null)
+    auto get_column(const stmt_with_location& stmt, int index, byte_vector& value, bool maybe_null) -> bool
     {
       if (!details::check_null_and_column_type(stmt, index, SQLITE_BLOB, maybe_null))
       {
         return false;
       }
 
+      // NOLINTNEXTLINE [cppcoreguidelines-pro-type-reinterpret-cast]
       const auto* data{reinterpret_cast<const std::byte*>(sqlite3_column_blob(stmt.value, index))};
       const auto length{static_cast<std::size_t>(sqlite3_column_bytes(stmt.value, index))};
 
@@ -156,6 +152,8 @@ namespace sqlite_wrapper
 
       value.clear();
       value.reserve(length);
+
+      // NOLINTNEXTLINE [cppcoreguidelines-pro-bounds-pointer-arithmetic]
       value.insert(value.cbegin(), data, data + length);
 
       return true;
@@ -164,36 +162,40 @@ namespace sqlite_wrapper
 
   auto open(const std::string& file_name, open_flags flags, const std::source_location& loc) -> database
   {
-    sqlite3* db{nullptr};
+    sqlite3* raw_db_handle{nullptr};
 
-    int sqlite_flags = SQLITE_OPEN_READWRITE;
+    int sqlite_flags{};
 
     switch (flags)
     {
       case open_flags::open_or_create:
-        sqlite_flags |= SQLITE_OPEN_CREATE;
+        sqlite_flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
         break;
       case open_flags::open_only:
+        sqlite_flags = SQLITE_OPEN_READWRITE;
         break;
       default:
         throw sqlite_error(sqlite_wrapper::format("invalid open_flags value  \"{}\"", to_underlying(flags)), SQLITE_ERROR, loc);
     }
 
-    if (const auto result{::sqlite3_open_v2(file_name.c_str(), &db, sqlite_flags, nullptr)}; result != SQLITE_OK)
+    if (const auto result{::sqlite3_open_v2(file_name.c_str(), &raw_db_handle, sqlite_flags, nullptr)}; result != SQLITE_OK)
     {
-      if (db != nullptr)
+      if (raw_db_handle != nullptr)
       {
-        ::sqlite3_close(db);
+        // SQLite3 does return a handle we need to close in some error cases, see documentation
+        ::sqlite3_close(raw_db_handle);
       }
+
       throw sqlite_error(sqlite_wrapper::format("sqlite3_open() failed to open database \"{}\"", file_name), result, loc);
     }
 
-    if (db == nullptr)
+    if (raw_db_handle == nullptr)
     {
+      // make sure we do not return a nullptr
       throw sqlite_error(sqlite_wrapper::format("sqlite3_open() returned nullptr for database \"{}\"", file_name), SQLITE_ERROR, loc);
     }
 
-    return database{db};
+    return database{raw_db_handle};
   }
 
   auto step(const stmt_with_location& stmt) -> bool
@@ -211,12 +213,14 @@ namespace sqlite_wrapper
 }  // namespace sqlite_wrapper
 
 
+// TODO: remove or turn into unit-tests
+// NOLINTBEGIN
+
 auto to_byte_vector(const std::string_view& str) -> sqlite_wrapper::byte_vector
 {
   return {reinterpret_cast<const std::byte*>(str.data()), reinterpret_cast<const std::byte*>(str.data() + str.size())};
 }
 
-// TODO: remove or turn into unit-tests
 int XXXmain()
 {
   try
@@ -234,40 +238,40 @@ int XXXmain()
                         sqlite_wrapper::column <sqlite_wrapper::foreign_key>("fk_test_table", test_table)) };
 
 
-    std::filesystem::remove("Test.db");
+    std::filesystem::remove("Test.database");
 
-    const auto db{ sqlite_wrapper::open("Test.db") };
+    const auto database{sqlite_wrapper::open("Test.database") };
 
-    sqlite_wrapper::execute_no_data(db.get(), "CREATE TABLE IF NOT EXISTS testtable (num INTEGER, double REAL, txt TEXT, blob BLOB)");
+    sqlite_wrapper::execute_no_data(database.get(), "CREATE TABLE IF NOT EXISTS testtable (num INTEGER, double REAL, txt TEXT, blob BLOB)");
 
-    sqlite_wrapper::execute_no_data(db.get(), "INSERT INTO testtable (num, double, txt, blob) VALUES (4711, 1.23, \"Hallo\", X'000102030405060708090a0b0c0d0e0f')");
-    sqlite_wrapper::execute_no_data(db.get(), "INSERT INTO testtable (num, double, txt, blob) VALUES (4712, 67.89, \"world\", X'fffefcfbfaf9f8f7f6f5f4f3f2f1f0')");
-    sqlite_wrapper::execute_no_data(db.get(), "INSERT INTO testtable (num, double, txt) VALUES (1, 67.89, \"lala\")");
-    sqlite_wrapper::execute_no_data(db.get(), "INSERT INTO testtable (double, txt, blob) VALUES (67.89, \"lulu\", X'fffefcfbfaf9f8f7f6f5f4f3f2f1f0')");
+    sqlite_wrapper::execute_no_data(database.get(), "INSERT INTO testtable (num, double, txt, blob) VALUES (4711, 1.23, \"Hallo\", X'000102030405060708090a0b0c0d0e0f')");
+    sqlite_wrapper::execute_no_data(database.get(), "INSERT INTO testtable (num, double, txt, blob) VALUES (4712, 67.89, \"world\", X'fffefcfbfaf9f8f7f6f5f4f3f2f1f0')");
+    sqlite_wrapper::execute_no_data(database.get(), "INSERT INTO testtable (num, double, txt) VALUES (1, 67.89, \"lala\")");
+    sqlite_wrapper::execute_no_data(database.get(), "INSERT INTO testtable (double, txt, blob) VALUES (67.89, \"lulu\", X'fffefcfbfaf9f8f7f6f5f4f3f2f1f0')");
 
     constexpr auto* sql{ "SELECT * from testtable WHERE num > ?" };
 
-    auto stmt{ sqlite_wrapper::create_prepared_statement(db.get(), sql) };
-    stmt = sqlite_wrapper::create_prepared_statement(db.get(), sql, std::int64_t{1});
-    stmt = sqlite_wrapper::create_prepared_statement(db.get(), sql, 1);
-    stmt = sqlite_wrapper::create_prepared_statement(db.get(), sql, nullptr);
-    stmt = sqlite_wrapper::create_prepared_statement(db.get(), sql, std::nullopt);
-    stmt = sqlite_wrapper::create_prepared_statement(db.get(), sql, 1.23);
-    stmt = sqlite_wrapper::create_prepared_statement(db.get(), sql, float{1.23});
-    stmt = sqlite_wrapper::create_prepared_statement(db.get(), sql, "fgsdfg");
-    stmt = sqlite_wrapper::create_prepared_statement(db.get(), sql, std::string("fgsdfg"));
+    auto stmt{ sqlite_wrapper::create_prepared_statement(database.get(), sql) };
+    stmt = sqlite_wrapper::create_prepared_statement(database.get(), sql, std::int64_t{1});
+    stmt = sqlite_wrapper::create_prepared_statement(database.get(), sql, 1);
+    stmt = sqlite_wrapper::create_prepared_statement(database.get(), sql, nullptr);
+    stmt = sqlite_wrapper::create_prepared_statement(database.get(), sql, std::nullopt);
+    stmt = sqlite_wrapper::create_prepared_statement(database.get(), sql, 1.23);
+    stmt = sqlite_wrapper::create_prepared_statement(database.get(), sql, float{1.23});
+    stmt = sqlite_wrapper::create_prepared_statement(database.get(), sql, "fgsdfg");
+    stmt = sqlite_wrapper::create_prepared_statement(database.get(), sql, std::string("fgsdfg"));
 
     const auto vector{to_byte_vector("Hello")};
 
-    stmt = sqlite_wrapper::create_prepared_statement(db.get(), sql, vector);
-    stmt = sqlite_wrapper::create_prepared_statement(db.get(), sql, sqlite_wrapper::const_byte_span{vector});
+    stmt = sqlite_wrapper::create_prepared_statement(database.get(), sql, vector);
+    stmt = sqlite_wrapper::create_prepared_statement(database.get(), sql, sqlite_wrapper::const_byte_span{vector});
 
 
-    stmt = sqlite_wrapper::create_prepared_statement(db.get(), sql, std::optional<int>{});
+    stmt = sqlite_wrapper::create_prepared_statement(database.get(), sql, std::optional<int>{});
 
     using row_type = std::tuple<std::optional<std::int64_t>, double, std::string, std::optional<sqlite_wrapper::byte_vector>>;
 
-    const auto rows = sqlite_wrapper::execute<row_type>(db.get(), sql, 0);
+    const auto rows = sqlite_wrapper::execute<row_type>(database.get(), sql, 0);
 
     assert(rows.size() == 3);
     for (const auto& row : rows)
@@ -282,3 +286,4 @@ int XXXmain()
 
   return 0;
 }
+// NOLINTEND

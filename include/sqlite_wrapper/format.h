@@ -1,6 +1,7 @@
 #pragma once
 
 #include <type_traits>
+#include <utility>
 
 #ifdef __has_include
 #  if __has_include(<format>)
@@ -22,11 +23,15 @@ namespace sqlite_wrapper
     return SQLITEWRAPPER_FORMAT_NAMESPACE::format(fmt, std::forward<Args>(args)...);
   }
 
-  template< class Enum >
+#ifdef __cpp_lib_to_underlying
+  using std::to_underlying;
+#else
+  template <class Enum>
   constexpr std::underlying_type_t<Enum> to_underlying(Enum e) noexcept
   {
     return static_cast<std::underlying_type_t<Enum>>(e);
   }
+#endif
 }
 
 #undef SQLITEWRAPPER_FORMAT_NAMESPACE

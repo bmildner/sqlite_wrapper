@@ -18,7 +18,7 @@ namespace sqlite_wrapper::mocks
     MOCK_METHOD(const char*, sqlite3_errmsg, (sqlite3* pDb), (const));
     MOCK_METHOD(const char*, sqlite3_errstr, (int error), (const));
 
-    MOCK_METHOD(int, sqlite3_prepare_v2, (sqlite3* db, const char* zSql, int nByte, sqlite3_stmt** ppStmt, const char** pzTail), (const));
+    MOCK_METHOD(int, sqlite3_prepare_v2, (sqlite3* pDb, const char* zSql, int nByte, sqlite3_stmt** ppStmt, const char** pzTail), (const));
     MOCK_METHOD(int, sqlite3_finalize, (sqlite3_stmt* pStmt), (const));
     MOCK_METHOD(sqlite3*, sqlite3_db_handle, (sqlite3_stmt* pStmt), (const));
     MOCK_METHOD(const char*, sqlite3_sql, (sqlite3_stmt* pStmt), (const));

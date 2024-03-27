@@ -18,7 +18,7 @@ namespace sqlite_wrapper
   {
     struct database_deleter
     {
-      SQLITE_WRAPPER_EXPORT void operator()(::sqlite3* db) const noexcept;
+      SQLITE_WRAPPER_EXPORT void operator()(::sqlite3* raw_db_handle) const noexcept;
     };
 
     struct statement_deleter

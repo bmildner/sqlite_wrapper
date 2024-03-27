@@ -2,17 +2,17 @@
 
 extern "C"
 {
-  void __ubsan_on_report()
+  void __ubsan_on_report()  // NOLINT [bugprone-reserved-identifier]
   {
     FAIL() << "Encountered an undefined behavior sanitizer error";
   }
 
-  void __asan_on_error()
+  void __asan_on_error()  // NOLINT [bugprone-reserved-identifier]
   {
     FAIL() << "Encountered an address sanitizer error";
   }
 
-  void __tsan_on_report()
+  void __tsan_on_report()  // NOLINT [bugprone-reserved-identifier]
   {
     FAIL() << "Encountered a thread sanitizer error";
   }
@@ -30,10 +30,11 @@ class ThrowListener : public testing::EmptyTestEventListener
   }
 };
 
-int main(int argc, char** argv)
+auto main(int argc, char** argv) -> int
 {
   testing::InitGoogleTest(&argc, argv);
 
+  // GTest takes ownership and frees object NOLINTNEXTLINE [cppcoreguidelines-owning-memory]
   testing::UnitTest::GetInstance()->listeners().Append(new ThrowListener);
 
   return RUN_ALL_TESTS();
