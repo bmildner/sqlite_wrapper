@@ -29,10 +29,14 @@ set(CMAKE_BUILD_RPATH ${PROJECT_BINARY_DIR}/lib CACHE PATH "Directory where exee
 if (DEFINED ENV{CLANG_TIDY})
   set(CLANG_TIDY $ENV{CLANG_TIDY})
 else()
-  set(CLANG_TIDY clang-tidy)
+  find_program(CLANG_TIDY NAMES clang-tidy clang-tidy-*)
 endif()
 
-set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY})
+if (DEFINED CLANG_TIDY)
+  set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY})
+else()
+  message(WARNING "Did not find clang-tidy!")
+endif()
 
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON CACHE BOOL "Treat all warnings as errors." FORCE)
 
