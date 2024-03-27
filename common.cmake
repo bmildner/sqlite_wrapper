@@ -16,7 +16,14 @@ if (DEFINED MSVC)
 else()
   target_compile_options(common_target_settings INTERFACE -Wall -Wextra -Wpedantic -Wformat -Wconversion -Wsign-conversion -Wtrampolines -Wimplicit-fallthrough -Wno-strict-overflow -fno-strict-aliasing)
   target_compile_options(common_target_settings INTERFACE -fstack-clash-protection -fstack-protector-strong -fcf-protection=full -fno-delete-null-pointer-checks -fno-strict-aliasing)
-  target_compile_options(common_target_settings INTERFACE -D_FORTIFY_SOURCE=1 -Wl,-z,nodlopen -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now)
+  target_compile_options(common_target_settings INTERFACE -Wl,-z,nodlopen -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now)
+
+  if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_options(common_target_settings INTERFACE -D_FORTIFY_SOURCE=1)
+  else()
+    target_compile_options(common_target_settings INTERFACE -D_FORTIFY_SOURCE=3)
+  endif()
+
   target_link_libraries(common_target_settings INTERFACE fmt::fmt)
 endif()
 
