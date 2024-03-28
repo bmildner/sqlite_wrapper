@@ -1,13 +1,4 @@
-﻿# CMakeList.txt : Top-level CMake project file, do global configuration
-# and include sub-projects here.
-#
-cmake_minimum_required (VERSION 3.8)
-
-# Enable Hot Reload for MSVC compilers if supported.
-if (POLICY CMP0141)
-  cmake_policy(SET CMP0141 NEW)
-  #set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
-endif()
+﻿cmake_minimum_required (VERSION 3.12)
 
 project ("sqlite_wrapper" VERSION 1.0.0 LANGUAGES CXX)
 
@@ -33,11 +24,21 @@ else()
 endif()
 
 if (NOT DEFINED MSVC)
-  set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY}; -extra-arg=-Wno-unknown-warning-option)
+  set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY}; -extra-arg=-Wno-unknown-warning-option -extra-arg=-Wno-ignored-optimization-argument)
 endif()
 
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON CACHE BOOL "Treat all warnings as errors." FORCE)
 
+if (NOT (CMAKE_BUILD_TYPE STREQUAL "Debug"))
+  include(CheckIPOSupported)
+  check_ipo_supported(RESULT LTO_SUPPORTED)
+
+  if (LTO_SUPPORTED)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON CACHE BOOL "Enable IPO/LTO" FORCE)
+  endif()
+endif()
+
+include(coverage.cmake)
 include(common.cmake)
 
 add_subdirectory ("src")
