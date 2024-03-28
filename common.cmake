@@ -17,6 +17,7 @@ if (DEFINED MSVC)
     cmake_policy(SET CMP0141 NEW)
   endif()
 
+  # TODO: in Release mode the PDBs are not named correctly nor copied/generated in CMAKE_RUNTIME_OUTPUT_DIRECTORY
   set_target_properties(common_target_settings PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT ProgramDatabase)
 else()
   target_compile_options(common_target_settings INTERFACE -Wall -Wextra -Wpedantic -Wformat -Wformat=2 -Wconversion -Wsign-conversion -Wtrampolines -Wimplicit-fallthrough -Wno-strict-overflow -fno-strict-aliasing)
@@ -34,11 +35,16 @@ else()
     # we always want do generate debug infos and use max optimization in non-debug builds
     target_compile_options(common_target_settings INTERFACE -g -O3)
 
-    # we can't use _FORTIFY_SOURCE=3 with GCC 12 on Ubuntu, causes redefinition warning
-    #target_compile_options(common_target_settings INTERFACE -D_FORTIFY_SOURCE=3)
-
-    # GCC 12 causes a lot of false-positive warnings in GTest ...
-    target_compile_options(common_target_settings INTERFACE -Wno-restrict)
+    # GCC 12 seems to be extra buggy ...
+    if ((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") AND ((CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0) AND (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.0)))
+      # TODO: only set for Release!
+      # GCC 12 causes a lot of false-positive warnings in GTest ...
+      target_compile_options(common_target_settings INTERFACE -Wno-restrict)
+    else ()
+      # TODO: maybe this is platform (linux distro) dependent, so GCCs build config!?!
+      # we can't use _FORTIFY_SOURCE=3 with GCC 12 on Ubuntu, causes redefinition warning -> error
+      target_compile_options(common_target_settings INTERFACE -D_FORTIFY_SOURCE=3)
+    endif()
   endif()
 
   target_link_libraries(common_target_settings INTERFACE fmt::fmt)
