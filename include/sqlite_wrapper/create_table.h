@@ -3,6 +3,7 @@
 #include "sqlite_wrapper.h"
 
 // TODO: cleanup or remove all togther!
+// NOLINTBEGIN
 namespace sqlite_wrapper
 {
   template<typename... Args>
@@ -109,3 +110,4 @@ namespace sqlite_wrapper
   };
 
 }  // namespace sqlite_wrapper
+// NOLINTEND

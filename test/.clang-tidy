@@ -1,0 +1,5 @@
+---
+Checks: '-modernize-*
+  -cppcoreguidelines-special-member-functions
+  -hicpp-special-member-functions'
+InheritParentConfig: true

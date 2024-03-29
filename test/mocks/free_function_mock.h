@@ -60,7 +60,7 @@ namespace sqlite_wrapper::mocks
   template <mock Mock, typename... Args>
   auto create_and_set_global_mock(Args&&... args) -> mock_ptr<Mock>
   {
-    const auto ptr{std::make_shared<strict_mock<Mock>>(std::forward<Args>(args)...)};
+    auto ptr{std::make_shared<strict_mock<Mock>>(std::forward<Args>(args)...)};
 
     set_global_mock(ptr);
 

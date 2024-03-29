@@ -66,15 +66,15 @@ namespace sqlite_wrapper
 
 
   // see https://stackoverflow.com/questions/68443804/c20-concept-to-check-tuple-like-types
-  template<class T, std::size_t N>
-  concept has_tuple_element = requires(T t)
+  template<typename T, std::size_t N>
+  concept has_tuple_element = requires(T tuple)
   {
     typename std::tuple_element_t<N, std::remove_const_t<T>>;
-    { get<N>(t) } -> std::convertible_to<const std::tuple_element_t<N, T>&>;
+    { get<N>(tuple) } -> std::convertible_to<const std::tuple_element_t<N, T>&>;
   };
 
-  template<class T>
-  concept tuple_like = !std::is_reference_v<T> && requires(T t)
+  template<typename T>
+  concept tuple_like = !std::is_reference_v<T> && requires
   {
     typename std::tuple_size<T>::type;
     requires std::derived_from<std::tuple_size<T>, std::integral_constant<std::size_t, std::tuple_size_v<T>>>;
@@ -85,7 +85,7 @@ namespace sqlite_wrapper
   } (std::make_index_sequence<std::tuple_size_v<T>>());
 
 
-  template<class T, std::size_t N>
+  template<typename T, std::size_t N>
   concept has_database_type_tuple_element = database_type<typename std::tuple_element_t<N, T>>;
 
   template <typename T>
@@ -109,7 +109,7 @@ namespace sqlite_wrapper
       bind(stmt, index, static_cast<std::int64_t>(param));
     }
 
-    void bind(const stmt_with_location& stmt, int index, const null_binding_type auto&)
+    void bind(const stmt_with_location& stmt, int index, const null_binding_type auto& /*unused*/)
     {
       bind(stmt, index);
     }
@@ -137,6 +137,8 @@ namespace sqlite_wrapper
 
     void bind_and_increment_index(const stmt_with_location& stmt, int& index, const single_binding_type auto& param)
     {
+      // TODO: not sure what array decay clang-tidy is complaining about here !?
+      // NOLINTNEXTLINE [cppcoreguidelines-pro-bounds-array-to-pointer-decay
       bind(stmt, index, param);
       index++;
     }
@@ -182,13 +184,14 @@ namespace sqlite_wrapper
     return open(file_name, open_flags::open_or_create, loc);
   }
 
-  [[nodiscard]] auto create_prepared_statement(const db_with_location& db, std::string_view sql, const binding_type auto&... params) -> statement
+  [[nodiscard]] auto create_prepared_statement(const db_with_location& database, std::string_view sql, const binding_type auto&... params) -> statement
   {
-    auto stmt{details::create_prepared_statement(db, sql)};
+    auto stmt{details::create_prepared_statement(database, sql)};
 
+    // "false-positive" triggered by empty parameter pack NOLINTNEXTLINE [misc-const-correctness]
     [[maybe_unused]] int index{1};
 
-    (details::bind_and_increment_index({stmt.get(), db.location}, index, params), ...);
+    (details::bind_and_increment_index({stmt.get(), database.location}, index, params), ...);
 
     return stmt;
   }
@@ -225,20 +228,20 @@ namespace sqlite_wrapper
     return get_rows<Row>(stmt, std::numeric_limits<std::size_t>::max());
   }
 
-  void execute_no_data(const db_with_location& db, std::string_view sql, const binding_type auto&... params)
+  void execute_no_data(const db_with_location& database, std::string_view sql, const binding_type auto&... params)
   {
-    const auto stmt{create_prepared_statement(db, sql, params...)};
+    const auto stmt{create_prepared_statement(database, sql, params...)};
 
-    if (step({stmt.get(), db.location}))
+    if (step({stmt.get(), database.location}))
     {
-      throw sqlite_error("unexpected data row in execute_no_data()", {stmt.get(), db.location});
+      throw sqlite_error("unexpected data row in execute_no_data()", {stmt.get(), database.location});
     }
   }
 
   template <row_type Row>
-  [[nodiscard]] auto execute_one_row(const db_with_location& db, std::string_view sql, const binding_type auto&... params) -> Row
+  [[nodiscard]] auto execute_one_row(const db_with_location& database, std::string_view sql, const binding_type auto&... params) -> Row
   {
-    const auto stmt{create_prepared_statement(db, sql, params...)};
+    const auto stmt{create_prepared_statement(database, sql, params...)};
 
     const auto result{get_rows<Row>(stmt, 2)};
 
@@ -251,11 +254,11 @@ namespace sqlite_wrapper
   }
 
   template <row_type Row>
-  [[nodiscard]] auto execute(const db_with_location& db, std::string_view sql, const binding_type auto&... params) -> std::vector<Row>
+  [[nodiscard]] auto execute(const db_with_location& database, std::string_view sql, const binding_type auto&... params) -> std::vector<Row>
   {
-    const auto stmt{create_prepared_statement(db, sql, params...)};
+    const auto stmt{create_prepared_statement(database, sql, params...)};
 
-    return get_rows<Row>({stmt.get(), db.location});
+    return get_rows<Row>({stmt.get(), database.location});
   }
 
 }  // namespace sqlite_wrapper

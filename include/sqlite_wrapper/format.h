@@ -18,7 +18,7 @@
 namespace sqlite_wrapper
 {
   template<typename... Args>
-  [[nodiscard]] std::string format(SQLITEWRAPPER_FORMAT_NAMESPACE::format_string<Args...> fmt, Args&&... args)
+  [[nodiscard]] auto format(SQLITEWRAPPER_FORMAT_NAMESPACE::format_string<Args...> fmt, Args&&... args) -> std::string
   {
     return SQLITEWRAPPER_FORMAT_NAMESPACE::format(fmt, std::forward<Args>(args)...);
   }
@@ -26,10 +26,10 @@ namespace sqlite_wrapper
 #ifdef __cpp_lib_to_underlying
   using std::to_underlying;
 #else
-  template <class Enum>
-  constexpr std::underlying_type_t<Enum> to_underlying(Enum e) noexcept
+  template <typename Enum>
+  constexpr auto to_underlying(Enum value) noexcept -> std::underlying_type_t<Enum>
   {
-    return static_cast<std::underlying_type_t<Enum>>(e);
+    return static_cast<std::underlying_type_t<Enum>>(value);
   }
 #endif
 }

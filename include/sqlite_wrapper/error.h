@@ -20,13 +20,18 @@ namespace sqlite_wrapper
     {}
 
     inline sqlite_error(const std::string& what, int error, const std::source_location& loc = std::source_location::current())
-      : sqlite_error(what, {static_cast<sqlite3*>(nullptr), loc}, error)
+      : sqlite_error(what, db_with_location{static_cast<sqlite3*>(nullptr), loc}, error)
     {}
 
     SQLITE_WRAPPER_EXPORT ~sqlite_error() override = default;
 
-    SQLITE_WRAPPER_EXPORT auto where() const -> const std::source_location&;
+    [[nodiscard]] SQLITE_WRAPPER_EXPORT auto where() const -> const std::source_location&;
 
+    SQLITE_WRAPPER_EXPORT sqlite_error(const sqlite_error& other) = default;
+    SQLITE_WRAPPER_EXPORT sqlite_error(sqlite_error&& other) = default;
+
+    SQLITE_WRAPPER_EXPORT auto operator=(const sqlite_error& other) -> sqlite_error& = default;
+    SQLITE_WRAPPER_EXPORT auto operator=(sqlite_error&& other) -> sqlite_error& = default;
   private:
     std::source_location m_location;
   };

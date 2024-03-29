@@ -13,7 +13,9 @@ Checks: '*
   -objc-*  
   -openmp-* 
   -zircon-*'
-WarningsAsErrors:    '*'
-HeaderFilterRegex:   ''
-FormatStyle:         none
-InheritParentConfig: true
+CheckOptions:
+  - key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
+    value: 1
+WarningsAsErrors:  '*'
+HeaderFilterRegex: '.*\.h'
+FormatStyle:       none

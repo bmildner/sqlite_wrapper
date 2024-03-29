@@ -1,0 +1,27 @@
+---
+BasedOnStyle: Google
+AlignConsecutiveMacros: false
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AllowShortBlocksOnASingleLine: "Empty"
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: "Never"
+AllowShortLoopsOnASingleLine: false
+AllowShortLambdasOnASingleLine: "All"
+BreakBeforeBraces: "Allman"
+ColumnLimit: 125
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^<[^\.]*>'
+    Priority: 1000
+  - Regex: '^<[^/]*>'
+    Priority: 1500
+  - Regex: '^<.*\.h(pp)?>'
+    Priority: 2000
+  - Regex: '^\"'
+    Priority: 3000
+IndentPPDirectives: "AfterHash"
+Language: Cpp
+DerivePointerAlignment: false
+PointerAlignment: Left
