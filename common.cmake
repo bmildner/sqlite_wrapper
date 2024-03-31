@@ -36,7 +36,7 @@ else()
     target_compile_options(common_target_settings INTERFACE -g -O3)
 
     # GCC 12 seems to be extra buggy ...
-    if ((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") AND ((CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0) AND (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.0)))
+    if ((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") AND ((CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0) AND (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 14.0)))
       # TODO: only set for Release!
       # GCC 12 causes a lot of false-positive warnings in GTest ...
       target_compile_options(common_target_settings INTERFACE -Wno-restrict)
