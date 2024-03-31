@@ -13,9 +13,9 @@ if (NOT DEFINED MSVC)
   find_package(fmt CONFIG REQUIRED)
 endif()
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin CACHE PATH "Directory where exeexecutables are dumped." FORCE)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin CACHE PATH "Directory where executables are dumped." FORCE)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib CACHE PATH "Directory where shared objects are dumped." FORCE)
-set(CMAKE_BUILD_RPATH ../lib CACHE PATH "Path where exeexecutables should look for shared objects." FORCE)
+set(CMAKE_BUILD_RPATH ../lib CACHE PATH "Path where executables should look for shared objects." FORCE)
 
 if (DEFINED ENV{CLANG_TIDY})
   set(CLANG_TIDY $ENV{CLANG_TIDY})
