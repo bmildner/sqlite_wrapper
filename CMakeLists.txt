@@ -4,7 +4,8 @@ project ("sqlite_wrapper" VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
-find_package(unofficial-sqlite3 CONFIG REQUIRED)    
+find_package(unofficial-sqlite3 CONFIG REQUIRED)
+# we do need to add the SQLite3 include directory to some targets but do NOT want a real link dependency!
 get_target_property(SQLITE3_INCLUDES unofficial::sqlite3::sqlite3 INTERFACE_INCLUDE_DIRECTORIES)
 
 find_package(GTest CONFIG REQUIRED)
@@ -12,6 +13,8 @@ find_package(GTest CONFIG REQUIRED)
 if (NOT DEFINED MSVC)
   find_package(fmt CONFIG REQUIRED)
 endif()
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE BOOL "Export compile commands for clang tools." FORCE)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin CACHE PATH "Directory where executables are dumped." FORCE)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib CACHE PATH "Directory where shared objects are dumped." FORCE)
