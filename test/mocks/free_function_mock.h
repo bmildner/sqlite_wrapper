@@ -70,14 +70,15 @@ namespace sqlite_wrapper::mocks
   template <mock Mock>
   auto get_global_mock() -> const mock_ptr<Mock>&
   {
-    // false-positive dangling reference from GCC 13, clang-tidy 16 does not know the warning
+    // false-positive for dangling reference from GCC 13, clang-tidy 16 does not know the warning option
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
-#ifndef __clang__
 # pragma GCC diagnostic ignored "-Wdangling-reference"
 #endif
     const auto& ptr{details::get_set_reset_global_mock<Mock>(nullptr, false)};
-#pragma GCC diagnostic pop
-
+#if defined(__GNUC__) && !defined(__clang__)
+# pragma GCC diagnostic pop
+#endif
     if (ptr == nullptr)
     {
       // TODO: maybe add caller source_location ...
