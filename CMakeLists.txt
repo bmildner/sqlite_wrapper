@@ -20,18 +20,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin CACHE PATH "Directo
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib CACHE PATH "Directory where shared objects are dumped." FORCE)
 set(CMAKE_BUILD_RPATH ../lib CACHE PATH "Path where executables should look for shared objects." FORCE)
 
-if (DEFINED ENV{CLANG_TIDY})
-  set(CLANG_TIDY $ENV{CLANG_TIDY})
-else()
-  find_program(CLANG_TIDY NAMES clang-tidy clang-tidy-*)
-endif()
-
-if (NOT DEFINED MSVC)
-  set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY}; -extra-arg=-Wno-unknown-warning-option -extra-arg=-Wno-ignored-optimization-argument)
-endif()
-
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON CACHE BOOL "Treat all warnings as errors." FORCE)
 
+# enable LTO
 if (NOT (CMAKE_BUILD_TYPE STREQUAL "Debug"))
   include(CheckIPOSupported)
   check_ipo_supported(RESULT LTO_SUPPORTED)
@@ -39,6 +30,18 @@ if (NOT (CMAKE_BUILD_TYPE STREQUAL "Debug"))
   if (LTO_SUPPORTED)
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON CACHE BOOL "Enable IPO/LTO" FORCE)
   endif()
+endif()
+
+# search for clang-tidy
+if (DEFINED ENV{CLANG_TIDY})
+  set(CLANG_TIDY $ENV{CLANG_TIDY})
+else()
+  find_program(CLANG_TIDY NAMES clang-tidy clang-tidy-*)
+endif()
+
+# enable clang-tidy
+if (NOT DEFINED MSVC)
+  set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY}; -extra-arg=-Wno-unknown-warning-option -extra-arg=-Wno-ignored-optimization-argument)
 endif()
 
 include(coverage.cmake)

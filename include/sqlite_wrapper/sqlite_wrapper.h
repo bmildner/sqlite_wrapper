@@ -176,7 +176,8 @@ namespace sqlite_wrapper
 
   }  // namespace details
 
-  enum class open_flags : std::size_t {open_or_create = 0, open_only};
+  enum class open_flags {open_or_create = 1, open_only};
+
   [[nodiscard]] SQLITE_WRAPPER_EXPORT auto open(const std::string& file_name, open_flags flags, const std::source_location& loc = std::source_location::current()) -> database;
 
   [[nodiscard]] inline auto open(const std::string& file_name, const std::source_location& loc = std::source_location::current()) -> database

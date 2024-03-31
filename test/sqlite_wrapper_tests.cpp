@@ -50,10 +50,16 @@ namespace
 
 TEST_F(sqlite_wrapper_tests, open)
 {
-  auto database{sqlite_wrapper::open(temp_db_file_name.string())};
-  
-  ASSERT_NE(database.get(), nullptr);
-  ASSERT_TRUE(std::filesystem::exists(temp_db_file_name));
+  {
+    auto database{sqlite_wrapper::open(temp_db_file_name.string())};
+
+    ASSERT_NE(database.get(), nullptr);
+    ASSERT_TRUE(std::filesystem::exists(temp_db_file_name));
+  }
+  {
+    auto database{sqlite_wrapper::open(temp_db_file_name.string(), sqlite_wrapper::open_flags::open_only)};
+    ASSERT_NE(database.get(), nullptr);
+  }
 }
 
 TEST_F(sqlite_wrapper_tests, open_failes)
