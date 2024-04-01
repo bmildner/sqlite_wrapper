@@ -2,8 +2,8 @@
 
 #include <gtest/gtest.h>
 
-#include "sqlite_wrapper/sqlite_wrapper.h"
 #include "sqlite_wrapper/format.h"
+#include "sqlite_wrapper/sqlite_wrapper.h"
 
 #include "sqlite_mock.h"
 #include "free_function_mock.h"
@@ -20,6 +20,7 @@ using testing::Mock;
 using testing::Test;
 using testing::StrEq;
 using testing::NotNull;
+using testing::IsNull;
 using testing::Return;
 using testing::SetArgPointee;
 using testing::DoAll;
@@ -28,8 +29,24 @@ using testing::StartsWith;
 using testing::HasSubstr;
 using testing::AllOf;
 
+extern "C"
+{
+  struct sqlite3
+  {
+    int in_t{};
+  };
+
+  struct sqlite3_stmt
+  {
+    double dub{};
+  };
+}
+
 namespace
 {
+  constexpr auto* db_file_name{"db file name"};
+  constexpr std::string_view dummy_sql{"SELECT * FROM table WHERE x == ? AND y != ?"};
+
   class sqlite_wrapper_mocked_tests : public Test
   {
   public:
@@ -42,8 +59,20 @@ namespace
     auto operator=(sqlite_wrapper_mocked_tests&& other) noexcept -> sqlite_wrapper_mocked_tests& = delete;
 
     void SetUp() override;
-
     void TearDown() override;
+
+    static void expect_open_and_close(std::string_view file_name, sqlite3& database, int flags);
+    static void expect_open_and_close(std::string_view file_name, sqlite3& database)
+    {
+      expect_open_and_close(file_name, database, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE);
+    }
+
+    static auto expect_and_get_database() -> sqlite_wrapper::database;
+
+    template <typename... Params>
+    static auto expect_and_get_statement(const sqlite_wrapper::db_with_location& database, sqlite3_stmt& statement, Params&&... params) -> sqlite_wrapper::statement;
+    template <typename... Params>
+    static auto expect_and_get_statement(const sqlite_wrapper::db_with_location& database, Params&&... params) -> sqlite_wrapper::statement;
   };
 
   void sqlite_wrapper_mocked_tests::SetUp()
@@ -57,24 +86,56 @@ namespace
     reset_global_mock<sqlite3_mock>();
   }
 
-  constexpr auto* db_file_name{"db file name"};
-}  // unnamed namespace
+  void sqlite_wrapper_mocked_tests::expect_open_and_close(std::string_view file_name, sqlite3& database, int flags)
+  {
+    EXPECT_CALL(*get_mock(), sqlite3_open_v2(StrEq(file_name), NotNull(), flags, nullptr))
+        .WillOnce(DoAll(SetArgPointee<1>(&database), Return(SQLITE_OK)))
+        .RetiresOnSaturation();
+    EXPECT_CALL(*get_mock(), sqlite3_close(Eq(&database)))
+        .Times(1)
+        .RetiresOnSaturation();
+  }
 
-extern "C"
-struct sqlite3
-{
-  int i{};
-};
+  auto sqlite_wrapper_mocked_tests::expect_and_get_database() -> sqlite_wrapper::database
+  {
+    static sqlite3 database{};
+
+    expect_open_and_close(db_file_name, database);
+
+    return sqlite_wrapper::open(db_file_name);
+  }
+
+  template <typename... Params>
+  auto sqlite_wrapper_mocked_tests::expect_and_get_statement(const sqlite_wrapper::db_with_location& database, sqlite3_stmt& statement, Params&&... params) -> sqlite_wrapper::statement
+  {
+    EXPECT_CALL(*get_mock(), sqlite3_prepare_v2(database.value, StrEq(dummy_sql), dummy_sql.size(), NotNull(), IsNull()))
+        .WillOnce(DoAll(SetArgPointee<3>(&statement), Return(SQLITE_OK)));
+    EXPECT_CALL(*get_mock(), sqlite3_finalize(&statement)).WillOnce(Return(SQLITE_OK));
+
+    auto stmt{sqlite_wrapper::create_prepared_statement(database, dummy_sql, std::forward<Params>(params)...)};
+
+    return stmt;
+  }
+
+  template <typename... Params>
+  auto sqlite_wrapper_mocked_tests::expect_and_get_statement(const sqlite_wrapper::db_with_location& database, Params&&... params) -> sqlite_wrapper::statement
+  {
+    static sqlite3_stmt statement{};
+
+    return expect_and_get_statement(database, statement, std::forward<Params>(params)...);
+  }
+
+}  // unnamed namespace
 
 TEST_F(sqlite_wrapper_mocked_tests, open_success)
 {
   sqlite3 database;
 
-  EXPECT_CALL(*get_mock(), sqlite3_open_v2(StrEq(db_file_name), NotNull(), SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr))
-  .WillOnce(DoAll(SetArgPointee<1>(&database), Return(SQLITE_OK)));
-  EXPECT_CALL(*get_mock(), sqlite3_close(Eq(&database))).Times(1);
+  expect_open_and_close(db_file_name, database);
+  expect_open_and_close(db_file_name, database, SQLITE_OPEN_READWRITE);
 
   ASSERT_EQ(sqlite_wrapper::open(db_file_name).get(), &database);
+  ASSERT_EQ(sqlite_wrapper::open(db_file_name, sqlite_wrapper::open_flags::open_only).get(), &database);
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, open_fails)
@@ -97,4 +158,26 @@ TEST_F(sqlite_wrapper_mocked_tests, open_fails)
 
   ASSERT_THROW_MSG((void)sqlite_wrapper::open(db_file_name, bad_open_flags), sqlite_wrapper::sqlite_error,
                    StartsWith(sqlite_wrapper::format("invalid open_flags value  \"{}\"", to_underlying(bad_open_flags))));
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_success)
+{
+  const auto database{expect_and_get_database()};
+
+  // no parameter
+  {
+    sqlite3_stmt statement{};
+
+    const auto stmt{expect_and_get_statement(database.get(), statement)};
+
+    EXPECT_EQ(stmt.get(), &statement);
+  }
+
+  // std::int64_t parameter
+  {
+    // TODO: add callback(?) for expected bindings!
+    const auto stmt{expect_and_get_statement(database.get(), std::int64_t{4711})};
+
+    EXPECT_NE(stmt.get(), nullptr);
+  }
 }
