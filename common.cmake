@@ -20,9 +20,11 @@ if (DEFINED MSVC)
   # TODO: in Release mode the PDBs are not named correctly nor copied/generated in CMAKE_RUNTIME_OUTPUT_DIRECTORY
   set_target_properties(common_target_settings PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT ProgramDatabase)
 else()
-  target_compile_options(common_target_settings INTERFACE -Wall -Wextra -Wpedantic -Wformat -Wformat=2 -Wconversion -Wsign-conversion -Wtrampolines -Wimplicit-fallthrough -Wno-strict-overflow -fno-strict-aliasing)
-  target_compile_options(common_target_settings INTERFACE -fstack-clash-protection -fstack-protector-strong -fcf-protection=full -fno-delete-null-pointer-checks -fno-strict-aliasing)
+  target_compile_options(common_target_settings INTERFACE -Wall -Wextra -Wpedantic -Wformat -Wformat=2 -Wconversion -Wsign-conversion -Wfloat-conversion -Wtrampolines -Wimplicit-fallthrough -Wno-strict-overflow)
+  target_compile_options(common_target_settings INTERFACE -pedantic -fstack-clash-protection -fstack-protector-strong -fcf-protection=full -fno-delete-null-pointer-checks -fno-strict-aliasing)
   target_compile_options(common_target_settings INTERFACE -Wl,-z,nodlopen -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now)
+
+  target_link_options(common_target_settings INTERFACE LINKER:-z,nodlopen LINKER:-z,noexecstack LINKER:-z,relro LINKER:-z,now)
 
   if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(common_target_settings INTERFACE -D_FORTIFY_SOURCE=1)
@@ -36,14 +38,15 @@ else()
     target_compile_options(common_target_settings INTERFACE -g -O3)
 
     # GCC 12 seems to be extra buggy ...
-    if ((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") AND ((CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0) AND (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 14.0)))
-      # TODO: only set for Release!
-      # GCC 12 causes a lot of false-positive warnings in GTest ...
-      target_compile_options(common_target_settings INTERFACE -Wno-restrict)
+    if ((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") AND ((CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0) AND (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.0)))
+      if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+        # GCC 12 causes a lot of false-positive warnings in GTest in Release builds ...
+        target_compile_options(common_target_settings INTERFACE -Wno-restrict)
+      endif()
     else ()
       # TODO: maybe this is platform (linux distro) dependent, so GCCs build config!?!
-      # we can't use _FORTIFY_SOURCE=3 with GCC 12 on Ubuntu, causes redefinition warning -> error
-      target_compile_options(common_target_settings INTERFACE -D_FORTIFY_SOURCE=3)
+      # we can't use _FORTIFY_SOURCE=3 with GCC 12/13 on Ubuntu, causes redefinition warning -> error
+#      target_compile_options(common_target_settings INTERFACE -D_FORTIFY_SOURCE=3)
     endif()
   endif()
 
