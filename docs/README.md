@@ -33,3 +33,4 @@
    See [https://reviews.llvm.org/D148280](https://reviews.llvm.org/D148280) or 
    [https://github.com/tpm2-software/tpm2-tss/issues/2792](https://github.com/tpm2-software/tpm2-tss/issues/2792).
   - You can try to temporarily reduce entropy using `sudo sysctl vm.mmap_rnd_bits=28`.
+  - To permanently change the entropy setting on Ubuntu add `vm.mmap_rnd_bits=28` in `/etc/sysctl.d/local.conf`.
