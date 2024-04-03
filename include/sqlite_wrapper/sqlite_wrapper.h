@@ -33,9 +33,12 @@ namespace sqlite_wrapper
   template <typename T>
   concept database_type = basic_database_type<T> || optional_database_type<T>;
 
-  
+
+  // TODO: do we really have to exclude bool
+  // exclude double and float types to avoid conversion of them to int64!
   template <typename T>
-  concept integral_binding_type = std::convertible_to<T, std::int64_t> && !std::same_as<bool, T>;
+  concept integral_binding_type = std::convertible_to<T, std::int64_t> && !std::same_as<double, T> && !std::same_as<float, T>
+                                  && !std::same_as<bool, T> ;
 
   template <typename T>
   concept real_binding_type = std::convertible_to<T, double>;
