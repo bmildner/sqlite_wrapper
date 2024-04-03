@@ -1,4 +1,6 @@
 #include <string>
+#include <vector>
+#include <functional>
 
 #include <gtest/gtest.h>
 
@@ -69,10 +71,60 @@ namespace
 
     static auto expect_and_get_database() -> sqlite_wrapper::database;
 
+    using expect_bind_function = std::function<void(::sqlite3_stmt* stmt, int index)>;
+    using expect_bind_list = std::vector<expect_bind_function>;
+
+    static auto expect_null_bind() -> expect_bind_function
+    {
+      return [] (::sqlite3_stmt* stmt, int index)
+      {
+        EXPECT_CALL(*get_mock(), sqlite3_bind_null(stmt, index)).WillOnce(Return(SQLITE_OK)).RetiresOnSaturation();
+      };
+    }
+
+    static auto expect_int64_bind(std::int64_t value) -> expect_bind_function
+    {
+      return [value] (::sqlite3_stmt* stmt, int index)
+      {
+        EXPECT_CALL(*get_mock(), sqlite3_bind_int64(stmt, index, value)).WillOnce(Return(SQLITE_OK)).RetiresOnSaturation();
+      };
+    }
+
+    static auto expect_double_bind(double value) -> expect_bind_function
+    {
+      return [value] (::sqlite3_stmt* stmt, int index)
+      {
+        EXPECT_CALL(*get_mock(), sqlite3_bind_double(stmt, index, value)).WillOnce(Return(SQLITE_OK)).RetiresOnSaturation();
+      };
+    }
+
     template <typename... Params>
-    static auto expect_and_get_statement(const sqlite_wrapper::db_with_location& database, sqlite3_stmt& statement, Params&&... params) -> sqlite_wrapper::statement;
+    static auto expect_and_get_statement(const sqlite_wrapper::db_with_location& database, ::sqlite3_stmt& statement,
+                                         const expect_bind_list& binders, Params&&... params) -> sqlite_wrapper::statement;
+
     template <typename... Params>
-    static auto expect_and_get_statement(const sqlite_wrapper::db_with_location& database, Params&&... params) -> sqlite_wrapper::statement;
+    static auto expect_and_get_statement(const sqlite_wrapper::db_with_location& database, ::sqlite3_stmt& statement,
+                                         Params&&... params) -> sqlite_wrapper::statement
+    {
+      return expect_and_get_statement(database, statement, {}, std::forward<Params>(params)...);
+    }
+
+    template <typename... Params>
+    static auto expect_and_get_statement(const sqlite_wrapper::db_with_location& database, const expect_bind_list& binders,
+                                         Params&&... params) -> sqlite_wrapper::statement
+    {
+      static ::sqlite3_stmt statement{};
+
+      return expect_and_get_statement(database, statement, binders, std::forward<Params>(params)...);
+    }
+
+    template <typename... Params>
+    static auto expect_and_get_statement(const sqlite_wrapper::db_with_location& database,
+                                         Params&&... params) -> sqlite_wrapper::statement
+    {
+      return expect_and_get_statement(database, {}, std::forward<Params>(params)...);
+    }
+
   };
 
   void sqlite_wrapper_mocked_tests::SetUp()
@@ -106,25 +158,25 @@ namespace
   }
 
   template <typename... Params>
-  auto sqlite_wrapper_mocked_tests::expect_and_get_statement(const sqlite_wrapper::db_with_location& database, sqlite3_stmt& statement, Params&&... params) -> sqlite_wrapper::statement
+  auto sqlite_wrapper_mocked_tests::expect_and_get_statement(const sqlite_wrapper::db_with_location& database,
+                                                             ::sqlite3_stmt& statement, const expect_bind_list& binders,
+                                                             Params&&... params) -> sqlite_wrapper::statement
   {
     EXPECT_CALL(*get_mock(), sqlite3_prepare_v2(database.value, StrEq(dummy_sql), dummy_sql.size(), NotNull(), IsNull()))
         .WillOnce(DoAll(SetArgPointee<3>(&statement), Return(SQLITE_OK)));
     EXPECT_CALL(*get_mock(), sqlite3_finalize(&statement)).WillOnce(Return(SQLITE_OK));
 
+    int index{1};
+
+    for (const auto& binder : binders)
+    {
+      binder(&statement, index++);
+    }
+
     auto stmt{sqlite_wrapper::create_prepared_statement(database, dummy_sql, std::forward<Params>(params)...)};
 
     return stmt;
   }
-
-  template <typename... Params>
-  auto sqlite_wrapper_mocked_tests::expect_and_get_statement(const sqlite_wrapper::db_with_location& database, Params&&... params) -> sqlite_wrapper::statement
-  {
-    static sqlite3_stmt statement{};
-
-    return expect_and_get_statement(database, statement, std::forward<Params>(params)...);
-  }
-
 }  // unnamed namespace
 
 TEST_F(sqlite_wrapper_mocked_tests, open_success)
@@ -166,18 +218,44 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_success)
 
   // no parameter
   {
-    sqlite3_stmt statement{};
+    ::sqlite3_stmt statement{};
 
     const auto stmt{expect_and_get_statement(database.get(), statement)};
 
     EXPECT_EQ(stmt.get(), &statement);
   }
 
+  // null parameter
+  {
+    ::sqlite3_stmt statement{};
+
+    const auto stmt{expect_and_get_statement(database.get(), statement, {expect_null_bind(), expect_null_bind()}, nullptr, std::nullopt)};
+
+    EXPECT_EQ(stmt.get(), &statement);
+  }
+
   // std::int64_t parameter
   {
-    // TODO: add callback(?) for expected bindings!
-    const auto stmt{expect_and_get_statement(database.get(), std::int64_t{4711})};
+    constexpr auto int64_value{std::int64_t{4711}};
 
-    EXPECT_NE(stmt.get(), nullptr);
+    ::sqlite3_stmt statement{};
+
+    const auto stmt{expect_and_get_statement(database.get(), statement, {expect_int64_bind(int64_value)}, int64_value)};
+
+    EXPECT_EQ(stmt.get(), &statement);
+  }
+
+  // double parameter
+  {
+    constexpr auto double_value{double{1.23}};
+    constexpr auto float_value{float{4.56F}};
+
+    ::sqlite3_stmt statement{};
+
+    const auto stmt{expect_and_get_statement(database.get(), statement,
+                                             {expect_double_bind(double_value), expect_double_bind(float_value)},
+                                             double_value, float_value)};
+
+    EXPECT_EQ(stmt.get(), &statement);
   }
 }

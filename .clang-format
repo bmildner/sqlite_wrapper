@@ -10,7 +10,7 @@ AllowShortIfStatementsOnASingleLine: "Never"
 AllowShortLoopsOnASingleLine: false
 AllowShortLambdasOnASingleLine: "All"
 BreakBeforeBraces: "Allman"
-ColumnLimit: 125
+ColumnLimit: 130
 IncludeBlocks: Regroup
 IncludeCategories:
   - Regex: '^<[^\.]*>'
