@@ -162,7 +162,7 @@ namespace
                                                              ::sqlite3_stmt& statement, const expect_bind_list& binders,
                                                              Params&&... params) -> sqlite_wrapper::statement
   {
-    EXPECT_CALL(*get_mock(), sqlite3_prepare_v2(database.value, StrEq(dummy_sql), dummy_sql.size(), NotNull(), IsNull()))
+    EXPECT_CALL(*get_mock(), sqlite3_prepare_v2(database.value, StrEq(dummy_sql), static_cast<int>(dummy_sql.size()), NotNull(), IsNull()))
         .WillOnce(DoAll(SetArgPointee<3>(&statement), Return(SQLITE_OK)));
     EXPECT_CALL(*get_mock(), sqlite3_finalize(&statement)).WillOnce(Return(SQLITE_OK));
 
