@@ -14,6 +14,8 @@
 
 ## Environment Variables
 
+- VCPKG_ROOT
+  - must always point to vcpkg installation, used in CMakePresets.json
 - CC
   - to set C compiler, like gcc-12
 - CXX
