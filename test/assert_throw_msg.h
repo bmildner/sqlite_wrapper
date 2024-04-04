@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 
 // TODO: maybe try to turn into a proper function?
-// NOLINTNEXTLINE [cppcoreguidelines-macro-usage]
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define ASSERT_THROW_MSG(statement, expected_exception, matcher)                          \
   try                                                                                     \
   {                                                                                       \

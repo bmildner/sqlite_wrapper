@@ -141,7 +141,7 @@ namespace sqlite_wrapper
     void bind_value_and_increment_index(const stmt_with_location& stmt, int& index, const single_binding_type auto& param)
     {
       // TODO: not sure what array decay clang-tidy is complaining about here !?
-      // NOLINTNEXTLINE [cppcoreguidelines-pro-bounds-array-to-pointer-decay
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay,hicpp-no-array-decay)
       bind_value(stmt, index, param);
       index++;
     }
@@ -192,7 +192,7 @@ namespace sqlite_wrapper
   {
     auto stmt{details::create_prepared_statement(database, sql)};
 
-    // "false-positive" triggered by empty parameter pack NOLINTNEXTLINE [misc-const-correctness]
+    // "false-positive" triggered by empty parameter pack NOLINTNEXTLINE(misc-const-correctness)
     [[maybe_unused]] int index{1};
 
     (details::bind_value_and_increment_index({stmt.get(), database.location}, index, params), ...);

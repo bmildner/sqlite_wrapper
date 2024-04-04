@@ -120,7 +120,7 @@ namespace sqlite_wrapper
         return false;
       }
 
-      // NOLINTNEXTLINE [cppcoreguidelines-pro-type-reinterpret-cast]
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       const auto* str{reinterpret_cast<const char*>(sqlite3_column_text(stmt.value, index))};
       const auto length{static_cast<std::size_t>(sqlite3_column_bytes(stmt.value, index))};
 
@@ -141,7 +141,7 @@ namespace sqlite_wrapper
         return false;
       }
 
-      // NOLINTNEXTLINE [cppcoreguidelines-pro-type-reinterpret-cast]
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       const auto* data{reinterpret_cast<const std::byte*>(sqlite3_column_blob(stmt.value, index))};
       const auto length{static_cast<std::size_t>(sqlite3_column_bytes(stmt.value, index))};
 
@@ -153,7 +153,7 @@ namespace sqlite_wrapper
       value.clear();
       value.reserve(length);
 
-      // NOLINTNEXTLINE [cppcoreguidelines-pro-bounds-pointer-arithmetic]
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
       value.insert(value.cbegin(), data, data + length);
 
       return true;

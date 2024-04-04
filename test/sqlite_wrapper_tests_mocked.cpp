@@ -1,8 +1,6 @@
-#include <functional>
 #include <string_view>
 #include <string>
 #include <vector>
-#include <functional>
 
 #include <gtest/gtest.h>
 
@@ -14,7 +12,6 @@
 #include "assert_throw_msg.h"
 
 using sqlite_wrapper::mocks::sqlite3_mock;
-using sqlite3_mock_ptr = sqlite_wrapper::mocks::mock_ptr<sqlite3_mock>;
 
 using sqlite_wrapper::mocks::reset_global_mock;
 constexpr auto get_mock{[] { return sqlite_wrapper::mocks::get_global_mock<sqlite3_mock>(); }};
@@ -32,6 +29,8 @@ using testing::Eq;
 using testing::StartsWith;
 using testing::HasSubstr;
 using testing::AllOf;
+using testing::Invoke;
+using testing::ElementsAreArray;
 
 extern "C"
 {
@@ -109,6 +108,22 @@ namespace
       };
     }
 
+    static auto expect_text_blob(const sqlite_wrapper::byte_vector& value) -> expect_bind_function
+    {
+      return [value] (::sqlite3_stmt* stmt, int index)
+      {
+        EXPECT_CALL(*get_mock(), sqlite3_bind_blob64(stmt, index, NotNull(), value.size(), IsNull()))
+            .WillOnce(DoAll(Invoke([value] (sqlite3_stmt*, int, const void* param_value, sqlite3_uint64 byteSize, void(*)(void*))
+                                   {
+                                     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+                                     const auto data{sqlite_wrapper::const_byte_span{reinterpret_cast<const std::byte*>(param_value), byteSize}};
+
+                                     ASSERT_THAT(data, ElementsAreArray(value));
+                                   }), Return(SQLITE_OK)))
+        .RetiresOnSaturation();
+      };
+    }
+
     template <typename... Params>
     static auto expect_and_get_statement(const sqlite_wrapper::db_with_location& database, ::sqlite3_stmt& statement,
                                          const expect_bind_list& binders, Params&&... params) -> sqlite_wrapper::statement;
@@ -135,7 +150,6 @@ namespace
     {
       return expect_and_get_statement(database, {}, std::forward<Params>(params)...);
     }
-
   };
 
   void sqlite_wrapper_mocked_tests::SetUp()
@@ -188,6 +202,18 @@ namespace
 
     return stmt;
   }
+
+  auto to_byte_vector(const std::string_view& str) -> sqlite_wrapper::byte_vector
+  {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    return {reinterpret_cast<const std::byte*>(str.data()), reinterpret_cast<const std::byte*>(str.data() + str.size())};
+  }
+
+  auto to_const_byte_span(const std::string_view& str) -> sqlite_wrapper::const_byte_span
+  {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    return {reinterpret_cast<const std::byte*>(str.data()), str.size()};
+  }
 }  // unnamed namespace
 
 TEST_F(sqlite_wrapper_mocked_tests, open_success)
@@ -215,7 +241,7 @@ TEST_F(sqlite_wrapper_mocked_tests, open_fails)
   ASSERT_THROW_MSG((void)sqlite_wrapper::open(db_file_name), sqlite_wrapper::sqlite_error,
     AllOf(StartsWith(sqlite_wrapper::format("sqlite3_open() returned nullptr for database \"{}\"", db_file_name)), HasSubstr("SQLITE_ERROR")));
 
-  // NOLINTNEXTLINE [hicpp-signed-bitwise]
+  // NOLINTNEXTLINE(hicpp-signed-bitwise)
   const sqlite_wrapper::open_flags bad_open_flags{sqlite_wrapper::to_underlying(sqlite_wrapper::open_flags::open_only) |
                                                   sqlite_wrapper::to_underlying(sqlite_wrapper::open_flags::open_or_create)};
 
@@ -289,6 +315,7 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_success)
   // text parameter
   {
     constexpr auto* char_ptr_value{"char* value"};
+    constexpr char char_array_value[]{"char[] value"};  // NOLINT(*-avoid-c-arrays)
     const std::string string_value{"std::string value"};
     constexpr auto string_view_value{std::string_view{"std::string_view value"}};
 
@@ -296,11 +323,26 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_success)
 
     const auto stmt{expect_and_get_statement(database.get(), statement,
                                              {expect_text_bind(char_ptr_value),
+                                              expect_text_bind({static_cast<const char*>(char_array_value)}),
                                               expect_text_bind(string_value),
                                               expect_text_bind(std::string{string_view_value})},
-                                             char_ptr_value, string_value, string_view_value)};
+                                             char_ptr_value, char_array_value, string_value, string_view_value)};
 
     EXPECT_EQ(stmt.get(), &statement);
   }
 
+  // blob parameter
+  {
+    const auto byte_vector{to_byte_vector("byte vector blob")};
+    const auto const_byte_span{to_const_byte_span("const byte span blob")};
+
+    ::sqlite3_stmt statement{};
+
+    const auto stmt{expect_and_get_statement(database.get(), statement,
+                                             {expect_text_blob(byte_vector),
+                                              expect_text_blob({const_byte_span.begin(), const_byte_span.end()})},
+                                             byte_vector, const_byte_span)};
+
+    EXPECT_EQ(stmt.get(), &statement);
+  }
 }
