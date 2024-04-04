@@ -32,18 +32,7 @@ if (NOT (CMAKE_BUILD_TYPE STREQUAL "Debug"))
   endif()
 endif()
 
-# search for clang-tidy
-if (DEFINED ENV{CLANG_TIDY})
-  set(CLANG_TIDY $ENV{CLANG_TIDY})
-else()
-  find_program(CLANG_TIDY NAMES clang-tidy clang-tidy-*)
-endif()
-
-# enable clang-tidy
-if (NOT DEFINED MSVC)
-  set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY}; -extra-arg=-Wno-unknown-warning-option -extra-arg=-Wno-ignored-optimization-argument)
-endif()
-
+include(static_analysis.cmake)
 include(coverage.cmake)
 include(common.cmake)
 
