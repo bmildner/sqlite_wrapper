@@ -21,7 +21,7 @@ if (DEFINED MSVC)
   set_target_properties(common_target_settings PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT ProgramDatabase)
 else()
   target_compile_options(common_target_settings INTERFACE -Wall -Wextra -Wpedantic -Wformat -Wformat=2 -Wconversion -Wsign-conversion -Wfloat-conversion -Wtrampolines -Wimplicit-fallthrough -Wno-strict-overflow)
-  target_compile_options(common_target_settings INTERFACE -pedantic -fstack-clash-protection -fstack-protector-strong -fcf-protection=full -fno-delete-null-pointer-checks -fno-strict-aliasing)
+  target_compile_options(common_target_settings INTERFACE -fstack-clash-protection -fstack-protector-strong -fcf-protection=full -fno-delete-null-pointer-checks -fno-strict-aliasing)
   target_compile_options(common_target_settings INTERFACE -Wl,-z,nodlopen -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now)
 
   target_link_options(common_target_settings INTERFACE LINKER:-z,nodlopen LINKER:-z,noexecstack LINKER:-z,relro LINKER:-z,now)
