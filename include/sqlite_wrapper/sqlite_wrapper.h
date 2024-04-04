@@ -101,48 +101,48 @@ namespace sqlite_wrapper
   {
     [[nodiscard]] SQLITE_WRAPPER_EXPORT auto create_prepared_statement(const db_with_location& database, std::string_view sql) -> statement;
 
-    SQLITE_WRAPPER_EXPORT void bind(const stmt_with_location& stmt, int index);
-    SQLITE_WRAPPER_EXPORT void bind(const stmt_with_location& stmt, int index, std::int64_t value);
-    SQLITE_WRAPPER_EXPORT void bind(const stmt_with_location& stmt, int index, double value);
-    SQLITE_WRAPPER_EXPORT void bind(const stmt_with_location& stmt, int index, std::string_view value);
-    SQLITE_WRAPPER_EXPORT void bind(const stmt_with_location& stmt, int index, const_byte_span value);
+    SQLITE_WRAPPER_EXPORT void bind_value(const stmt_with_location& stmt, int index);
+    SQLITE_WRAPPER_EXPORT void bind_value(const stmt_with_location& stmt, int index, std::int64_t value);
+    SQLITE_WRAPPER_EXPORT void bind_value(const stmt_with_location& stmt, int index, double value);
+    SQLITE_WRAPPER_EXPORT void bind_value(const stmt_with_location& stmt, int index, std::string_view value);
+    SQLITE_WRAPPER_EXPORT void bind_value(const stmt_with_location& stmt, int index, const_byte_span value);
 
-    void bind(const stmt_with_location& stmt, int index, const integral_binding_type auto& param)
+    void bind_value(const stmt_with_location& stmt, int index, const integral_binding_type auto& param)
     {
-      bind(stmt, index, static_cast<std::int64_t>(param));
+      bind_value(stmt, index, static_cast<std::int64_t>(param));
     }
 
-    void bind(const stmt_with_location& stmt, int index, const null_binding_type auto& /*unused*/)
+    void bind_value(const stmt_with_location& stmt, int index, const null_binding_type auto& /*unused*/)
     {
-      bind(stmt, index);
+      bind_value(stmt, index);
     }
 
-    void bind(const stmt_with_location& stmt, int index, const optional_binding_type auto& param)
+    void bind_value(const stmt_with_location& stmt, int index, const optional_binding_type auto& param)
     {
       if (param.has_value())
       {
-        bind(stmt, index, param.value());
+        bind_value(stmt, index, param.value());
       }
       else
       {
-        bind(stmt, index, std::nullopt);
+        bind_value(stmt, index, std::nullopt);
       }
     }
 
-    void bind_and_increment_index(const stmt_with_location& stmt, int& index, const multi_binding_type auto& param_list)
+    void bind_value_and_increment_index(const stmt_with_location& stmt, int& index, const multi_binding_type auto& param_list)
     {
       for (const auto& param : param_list)
       {
-        bind(stmt, index, param);
+        bind_value(stmt, index, param);
         index++;
       }
     }
 
-    void bind_and_increment_index(const stmt_with_location& stmt, int& index, const single_binding_type auto& param)
+    void bind_value_and_increment_index(const stmt_with_location& stmt, int& index, const single_binding_type auto& param)
     {
       // TODO: not sure what array decay clang-tidy is complaining about here !?
       // NOLINTNEXTLINE [cppcoreguidelines-pro-bounds-array-to-pointer-decay
-      bind(stmt, index, param);
+      bind_value(stmt, index, param);
       index++;
     }
 
@@ -195,7 +195,7 @@ namespace sqlite_wrapper
     // "false-positive" triggered by empty parameter pack NOLINTNEXTLINE [misc-const-correctness]
     [[maybe_unused]] int index{1};
 
-    (details::bind_and_increment_index({stmt.get(), database.location}, index, params), ...);
+    (details::bind_value_and_increment_index({stmt.get(), database.location}, index, params), ...);
 
     return stmt;
   }

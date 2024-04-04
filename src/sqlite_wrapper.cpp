@@ -27,7 +27,7 @@ namespace sqlite_wrapper
       return statement{ stmt };
     }
 
-    void bind(const stmt_with_location& stmt, int index)
+    void bind_value(const stmt_with_location& stmt, int index)
     {
       if (const auto result{ ::sqlite3_bind_null(stmt.value, index) }; result != SQLITE_OK)
       {
@@ -35,7 +35,7 @@ namespace sqlite_wrapper
       }
     }
 
-    void bind(const stmt_with_location& stmt, int index, std::int64_t value)
+    void bind_value(const stmt_with_location& stmt, int index, std::int64_t value)
     {
       if (const auto result{ ::sqlite3_bind_int64(stmt.value, index, value) }; result != SQLITE_OK)
       {
@@ -43,7 +43,7 @@ namespace sqlite_wrapper
       }
     }
 
-    void bind(const stmt_with_location& stmt, int index, double value)
+    void bind_value(const stmt_with_location& stmt, int index, double value)
     {
       if (const auto result{ ::sqlite3_bind_double(stmt.value, index, value) }; result != SQLITE_OK)
       {
@@ -51,7 +51,7 @@ namespace sqlite_wrapper
       }
     }
 
-    void bind(const stmt_with_location& stmt, int index, std::string_view value)
+    void bind_value(const stmt_with_location& stmt, int index, std::string_view value)
     {
       if (const auto result{::sqlite3_bind_text64(stmt.value, index, value.data(), value.size(), nullptr, SQLITE_UTF8)}; result != SQLITE_OK)
       {
@@ -59,7 +59,7 @@ namespace sqlite_wrapper
       }
     }
 
-    void bind(const stmt_with_location& stmt, int index, const_byte_span value)
+    void bind_value(const stmt_with_location& stmt, int index, const_byte_span value)
     {
       if (const auto result{::sqlite3_bind_blob64(stmt.value, index, value.data(), value.size(), nullptr)}; result != SQLITE_OK)
       {

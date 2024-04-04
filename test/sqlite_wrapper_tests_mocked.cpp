@@ -1,3 +1,5 @@
+#include <functional>
+#include <string_view>
 #include <string>
 #include <vector>
 #include <functional>
@@ -95,6 +97,15 @@ namespace
       return [value] (::sqlite3_stmt* stmt, int index)
       {
         EXPECT_CALL(*get_mock(), sqlite3_bind_double(stmt, index, value)).WillOnce(Return(SQLITE_OK)).RetiresOnSaturation();
+      };
+    }
+
+    static auto expect_text_bind(const std::string& value) -> expect_bind_function
+    {
+      return [value] (::sqlite3_stmt* stmt, int index)
+      {
+        EXPECT_CALL(*get_mock(), sqlite3_bind_text64(stmt, index, StrEq(value), value.size(), IsNull(), SQLITE_UTF8))
+            .WillOnce(Return(SQLITE_OK)).RetiresOnSaturation();
       };
     }
 
@@ -229,7 +240,9 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_success)
   {
     ::sqlite3_stmt statement{};
 
-    const auto stmt{expect_and_get_statement(database.get(), statement, {expect_null_bind(), expect_null_bind()}, nullptr, std::nullopt)};
+    const auto stmt{expect_and_get_statement(database.get(), statement,
+                                             {expect_null_bind(), expect_null_bind()},
+                                             nullptr, std::nullopt)};
 
     EXPECT_EQ(stmt.get(), &statement);
   }
@@ -237,10 +250,24 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_success)
   // std::int64_t parameter
   {
     constexpr auto int64_value{std::int64_t{4711}};
+    constexpr auto int32_value{std::int32_t{4712}};
+    constexpr auto uint32_value{std::uint32_t{4713}};
+    constexpr auto int16_value{std::int16_t{4714}};
+    constexpr auto uint16_value{std::uint16_t{4715}};
+    constexpr auto int8_value{std::int8_t{16}};
+    constexpr auto uint8_value{std::uint8_t{17}};
 
     ::sqlite3_stmt statement{};
 
-    const auto stmt{expect_and_get_statement(database.get(), statement, {expect_int64_bind(int64_value)}, int64_value)};
+    const auto stmt{expect_and_get_statement(database.get(), statement,
+                                             {expect_int64_bind(int64_value),
+                                                 expect_int64_bind(int32_value), expect_int64_bind(uint32_value),
+                                                 expect_int64_bind(int16_value), expect_int64_bind(uint16_value),
+                                                 expect_int64_bind(int8_value), expect_int64_bind(uint8_value)},
+                                             int64_value,
+                                             int32_value, uint32_value,
+                                             int16_value, uint16_value,
+                                             int8_value, uint8_value)};
 
     EXPECT_EQ(stmt.get(), &statement);
   }
@@ -258,4 +285,22 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_success)
 
     EXPECT_EQ(stmt.get(), &statement);
   }
+
+  // text parameter
+  {
+    constexpr auto* char_ptr_value{"char* value"};
+    const std::string string_value{"std::string value"};
+    constexpr auto string_view_value{std::string_view{"std::string_view value"}};
+
+    ::sqlite3_stmt statement{};
+
+    const auto stmt{expect_and_get_statement(database.get(), statement,
+                                             {expect_text_bind(char_ptr_value),
+                                              expect_text_bind(string_value),
+                                              expect_text_bind(std::string{string_view_value})},
+                                             char_ptr_value, string_value, string_view_value)};
+
+    EXPECT_EQ(stmt.get(), &statement);
+  }
+
 }
