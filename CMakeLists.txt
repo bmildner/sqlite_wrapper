@@ -22,6 +22,13 @@ set(CMAKE_BUILD_RPATH ../lib CACHE PATH "Path where executables should look for 
 
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON CACHE BOOL "Treat all warnings as errors." FORCE)
 
+#enable ccache if found
+find_program(CCACHE_FOUND ccache)
+if(CCACHE_FOUND)
+  set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE_FOUND} CACHE PATH "Path and name of ccache." FORCE)
+  set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_FOUND} CACHE PATH "Path and name of ccache." FORCE)
+endif()
+
 # enable LTO
 if (NOT (CMAKE_BUILD_TYPE STREQUAL "Debug"))
   include(CheckIPOSupported)

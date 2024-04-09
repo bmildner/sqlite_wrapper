@@ -8,6 +8,9 @@
   - install latest version via git clone 
   - environment variable VCPKG_ROOT must be set 
 
+- ccache:
+  - if installed and found by cmake ccache will be automatically used
+  
 ### Linux only:
 - gcovr: (optional for code coverage) 
   - install latest version via pip/pipx install gcovr 
