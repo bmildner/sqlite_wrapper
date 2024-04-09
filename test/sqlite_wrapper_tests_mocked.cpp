@@ -1,6 +1,7 @@
 #include <string_view>
 #include <string>
 #include <vector>
+#include <list>
 
 #include <gtest/gtest.h>
 
@@ -147,13 +148,6 @@ namespace
 
       return stmt;
     }
-
-    template <typename... Params>
-    static auto expect_and_get_statement(const sqlite_wrapper::db_with_location& database,
-                                         Params&&... params) -> sqlite_wrapper::statement
-    {
-      return expect_and_get_statement(database, {}, std::forward<Params>(params)...);
-    }
   };
 
   void sqlite_wrapper_mocked_tests::SetUp()
@@ -253,7 +247,7 @@ TEST_F(sqlite_wrapper_mocked_tests, open_fails)
                    StartsWith(sqlite_wrapper::format("invalid open_flags value  \"{}\"", to_underlying(bad_open_flags))));
 }
 
-TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_success)
+TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_success)
 {
   const auto database{expect_and_get_database()};
 
@@ -367,4 +361,41 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_success)
 
     EXPECT_EQ(stmt.get(), &statement);
   }
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_complex_binding_success)
+{
+  const auto database{expect_and_get_database()};
+
+  // range of null parameters
+  {
+    const std::vector<std::nullptr_t> vector_nullptr{nullptr, nullptr, nullptr, nullptr};
+    constexpr std::array<std::nullopt_t, 3> array_nullopt{std::nullopt, std::nullopt, std::nullopt};
+
+    expect_and_get_statement(database.get(), {expect_null_bind(), expect_null_bind(), expect_null_bind(), expect_null_bind(),
+                                              expect_null_bind(), expect_null_bind(), expect_null_bind()},
+                             vector_nullptr, array_nullopt);
+  }
+
+  // range of int64 parameters
+  {
+    const std::list<std::int64_t> list_int64{4711, 4712, 4713, 4714, 4715, 4716};
+    constexpr std::array<std::int64_t, 4> array_int64{4717, 4718, 4719, 4720};
+
+    expect_bind_list expected_binder;
+
+    for (const auto int64 : list_int64)
+    {
+      expected_binder.push_back(expect_int64_bind(int64));
+    }
+
+    for (const auto int64 : array_int64)
+    {
+      expected_binder.push_back(expect_int64_bind(int64));
+    }
+
+    expect_and_get_statement(database.get(), expected_binder, list_int64, array_int64);
+  }
+
+  // TODO: tests for other database base types and other containers/ranges
 }
