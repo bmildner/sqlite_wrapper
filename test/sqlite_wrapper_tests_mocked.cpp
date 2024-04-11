@@ -3,6 +3,9 @@
 #include <vector>
 #include <list>
 #include <array>
+#include <memory>
+#include <set>
+#include <ranges>
 
 #include <gtest/gtest.h>
 
@@ -14,10 +17,7 @@
 #include "assert_throw_msg.h"
 
 using sqlite_wrapper::mocks::sqlite3_mock;
-
 using sqlite_wrapper::mocks::reset_global_mock;
-constexpr auto get_mock{[] { return sqlite_wrapper::mocks::get_global_mock<sqlite3_mock>(); }};
-constexpr auto create_and_set_global_mock{[] { return sqlite_wrapper::mocks::create_and_set_global_mock<sqlite3_mock>(); }};
 
 using testing::Mock;
 using testing::Test;
@@ -33,24 +33,28 @@ using testing::HasSubstr;
 using testing::AllOf;
 using testing::Invoke;
 using testing::ElementsAreArray;
+using testing::InSequence;
 
 extern "C"
 {
   struct sqlite3
   {
-    int in_t{};
+    int value{};
   };
 
   struct sqlite3_stmt
   {
-    double dub{};
+    double value{};
   };
 }
 
 namespace
 {
-  constexpr auto* db_file_name{"db file name"};
+  constexpr auto* db_file_name{"db_file_name"};
   constexpr std::string_view dummy_sql{"SELECT * FROM table WHERE x == ? AND y != ?"};
+
+  constexpr auto get_mock{[] { return sqlite_wrapper::mocks::get_global_mock<sqlite3_mock>(); }};
+  constexpr auto create_and_set_global_mock{[] { return sqlite_wrapper::mocks::create_and_set_global_mock<sqlite3_mock>(); }};
 
   class sqlite_wrapper_mocked_tests : public Test
   {
@@ -149,7 +153,7 @@ namespace
 
       return stmt;
     }
-  };
+  };  // class sqlite_wrapper_mocked_tests
 
   void sqlite_wrapper_mocked_tests::SetUp()
   {   
@@ -164,11 +168,14 @@ namespace
 
   void sqlite_wrapper_mocked_tests::expect_open_and_close(std::string_view file_name, sqlite3& database, int flags)
   {
+    // make sure mocks are called in the correct order!
+    const InSequence sequence_guard;
+
     EXPECT_CALL(*get_mock(), sqlite3_open_v2(StrEq(file_name), NotNull(), flags, nullptr))
         .WillOnce(DoAll(SetArgPointee<1>(&database), Return(SQLITE_OK)))
         .RetiresOnSaturation();
     EXPECT_CALL(*get_mock(), sqlite3_close(Eq(&database)))
-        .Times(1)
+        .WillOnce(Return(SQLITE_OK))
         .RetiresOnSaturation();
   }
 
@@ -186,9 +193,11 @@ namespace
                                                              ::sqlite3_stmt& statement, const expect_bind_list& binders,
                                                              Params&&... params) -> sqlite_wrapper::statement
   {
+    // make sure mocks are called in the correct order!
+    const InSequence sequence_guard;
+
     EXPECT_CALL(*get_mock(), sqlite3_prepare_v2(database.value, StrEq(dummy_sql), static_cast<int>(dummy_sql.size()), NotNull(), IsNull()))
         .WillOnce(DoAll(SetArgPointee<3>(&statement), Return(SQLITE_OK)));
-    EXPECT_CALL(*get_mock(), sqlite3_finalize(&statement)).WillOnce(Return(SQLITE_OK));
 
     int index{1};
 
@@ -197,18 +206,20 @@ namespace
       binder(&statement, index++);
     }
 
+    EXPECT_CALL(*get_mock(), sqlite3_finalize(&statement)).WillOnce(Return(SQLITE_OK));
+
     auto stmt{sqlite_wrapper::create_prepared_statement(database, dummy_sql, std::forward<Params>(params)...)};
 
     return stmt;
   }
 
-  auto to_byte_vector(const std::string_view& str) -> sqlite_wrapper::byte_vector
+  auto to_byte_vector(std::string_view str) -> sqlite_wrapper::byte_vector
   {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     return {reinterpret_cast<const std::byte*>(str.data()), reinterpret_cast<const std::byte*>(str.data() + str.size())};
   }
 
-  auto to_const_byte_span(const std::string_view& str) -> sqlite_wrapper::const_byte_span
+  auto to_const_byte_span(std::string_view str) -> sqlite_wrapper::const_byte_span
   {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     return {reinterpret_cast<const std::byte*>(str.data()), str.size()};
@@ -380,22 +391,43 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_complex_binding_su
 
   // range of int64 parameters
   {
-    const std::list<std::int64_t> list_int64{4711, 4712, 4713, 4714, 4715, 4716};
-    constexpr std::array<std::int64_t, 4> array_int64{4717, 4718, 4719, 4720};
+    const std::list<std::int64_t> int64_list{4711, 4712, 4713, 4714, 4715, 4716};
+    constexpr std::array<std::int64_t, 4> int64_array{4717, 4718, 4719, 4720};
 
     expect_bind_list expected_binder;
 
-    for (const auto int64 : list_int64)
+    for (const auto value : int64_list)
     {
-      expected_binder.push_back(expect_int64_bind(int64));
+      expected_binder.push_back(expect_int64_bind(value));
     }
 
-    for (const auto int64 : array_int64)
+    for (const auto value : int64_array)
     {
-      expected_binder.push_back(expect_int64_bind(int64));
+      expected_binder.push_back(expect_int64_bind(value));
     }
 
-    expect_and_get_statement(database.get(), expected_binder, list_int64, array_int64);
+    expect_and_get_statement(database.get(), expected_binder, int64_list, int64_array);
+  }
+
+  // range of doubles parameters
+  {
+    const std::set<double> double_set{0.12345, 1.23456, 2.34567, 3.45678, 4.56789};
+    const auto double_range{std::ranges::take_view{
+        std::ranges::transform_view{std::ranges::reverse_view{double_set}, [](double value) { return value * 2.0; }}, 3}};
+
+    expect_bind_list expected_binder;
+
+    for (const auto value : double_set)
+    {
+      expected_binder.push_back(expect_double_bind(value));
+    }
+
+    for (const auto value : double_range)
+    {
+      expected_binder.push_back(expect_double_bind(value));
+    }
+
+    expect_and_get_statement(database.get(), expected_binder, double_set, double_range);
   }
 
   // TODO: tests for other database base types and other containers/ranges
