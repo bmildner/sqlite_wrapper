@@ -101,7 +101,7 @@ namespace sqlite_wrapper
   {
     [[nodiscard]] SQLITE_WRAPPER_EXPORT auto create_prepared_statement(const db_with_location& database, std::string_view sql) -> statement;
 
-    SQLITE_WRAPPER_EXPORT void bind_value(const stmt_with_location& stmt, int index);
+    SQLITE_WRAPPER_EXPORT void bind_value(const stmt_with_location& stmt, int index);  // null-value
     SQLITE_WRAPPER_EXPORT void bind_value(const stmt_with_location& stmt, int index, std::int64_t value);
     SQLITE_WRAPPER_EXPORT void bind_value(const stmt_with_location& stmt, int index, double value);
     SQLITE_WRAPPER_EXPORT void bind_value(const stmt_with_location& stmt, int index, std::string_view value);
