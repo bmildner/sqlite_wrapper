@@ -95,7 +95,7 @@ namespace sqlite_wrapper
   concept row_type = tuple_like<T> && []<std::size_t... N>(std::index_sequence<N...>)
   {
     return (has_database_type_tuple_element<T, N> && ...);
-  } (std::make_index_sequence<std::tuple_size_v<T>>());;
+  } (std::make_index_sequence<std::tuple_size_v<T>>());
 
   namespace details
   {
