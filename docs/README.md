@@ -27,6 +27,9 @@
   - to set your clang-tidy, like clang-tidy-15
 - GCOV
   - like GCOV=gcov-12 if your compiler is not g++ or clang, like using g++-12 on Ubuntu 22.04 for example
+- ASAN_OPTIONS
+  - options for AddressSanitizer, set to "halt_on_error=true", "help=1" prints all supported options, separator for 
+    multiple options is ":"  
 
 ## Hints
 
@@ -37,3 +40,6 @@
    [https://github.com/tpm2-software/tpm2-tss/issues/2792](https://github.com/tpm2-software/tpm2-tss/issues/2792).
   - You can try to temporarily reduce entropy using `sudo sysctl vm.mmap_rnd_bits=28`.
   - To permanently change the entropy setting on Ubuntu add `vm.mmap_rnd_bits=28` in `/etc/sysctl.d/local.conf`.
+- If test_runner or test_runner_mocked crash (SEGV) or return != 0 after all tests when run in gdb then this is due to
+  an issues between asan/lsan and gdb. In some environments the text output of the sanitizer might not be visible!
+  In CLion one has to uncheck "Use visual representation for Sanitizer's output"!
