@@ -395,8 +395,8 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_complex_binding_su
 
   // range of null parameters
   {
-    const std::vector<std::nullptr_t> vector_nullptr{nullptr, nullptr, nullptr, nullptr};
-    constexpr std::array<std::nullopt_t, 3> array_nullopt{std::nullopt, std::nullopt, std::nullopt};
+    const std::vector vector_nullptr{nullptr, nullptr, nullptr, nullptr};
+    constexpr std::array array_nullopt{std::nullopt, std::nullopt, std::nullopt};
 
     expect_and_get_statement(database.get(), {expect_null_bind(), expect_null_bind(), expect_null_bind(), expect_null_bind(),
                                               expect_null_bind(), expect_null_bind(), expect_null_bind()},
@@ -425,7 +425,7 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_complex_binding_su
 
   // range of doubles parameters
   {
-    const std::set<double> double_set{0.12345, 1.23456, 2.34567, 3.45678, 4.56789};
+    const std::set double_set{0.12345, 1.23456, 2.34567, 3.45678, 4.56789};
     const auto double_range{std::ranges::take_view{
         std::ranges::transform_view{std::ranges::reverse_view{double_set}, [](double value) { return value * 2.0; }}, 3}};
 
