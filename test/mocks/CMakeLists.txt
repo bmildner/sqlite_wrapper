@@ -4,4 +4,6 @@ target_link_libraries(sqlite_mock PRIVATE common_target_settings GTest::gmock)
 
 target_include_directories(sqlite_mock PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+target_include_directories(sqlite_mock PRIVATE "../../include")
+
 target_include_directories(sqlite_mock INTERFACE ${SQLITE3_INCLUDES})
