@@ -2,13 +2,16 @@
 
 #include <type_traits>
 #include <utility>
+#include <source_location>
 
 #ifdef __has_include
 #  if __has_include(<format>)
 #    include <format>
+#    define SQLITEWRAPPER_FORMAT_NAMESPACE_NAME std
 #    define SQLITEWRAPPER_FORMAT_NAMESPACE ::std
 #  elif __has_include(<fmt/format.h>)
 #    include <fmt/format.h>
+#    define SQLITEWRAPPER_FORMAT_NAMESPACE_NAME fmt
 #    define SQLITEWRAPPER_FORMAT_NAMESPACE ::fmt
 #  else
 #     error "Did not find <format> nor <fmt/format.h>!"
@@ -34,4 +37,30 @@ namespace sqlite_wrapper
 #endif
 }
 
+template<>
+struct SQLITEWRAPPER_FORMAT_NAMESPACE_NAME::formatter<std::source_location>
+{
+  constexpr auto parse(SQLITEWRAPPER_FORMAT_NAMESPACE::format_parse_context& parse_ctx)
+  {
+    auto iter{parse_ctx.begin()};
+    // skip spaces and tabs
+    while ((iter != parse_ctx.end()) && (*iter != '}') && ((*iter == ' ') || (*iter == '\t')))
+    {
+      iter++;
+    }
+    if ((iter != parse_ctx.end()) && (*iter != '}'))
+    {
+      throw SQLITEWRAPPER_FORMAT_NAMESPACE::format_error("only empty format-spec is supported");
+    }
+    return iter;
+  }
+
+  template<typename FmtContext>
+  auto format(std::source_location location, FmtContext& ctx) const
+  {
+    return SQLITEWRAPPER_FORMAT_NAMESPACE::format_to(ctx.out(), "{}:{} '{}'", location.file_name(), location.line(), location.function_name());
+  }
+};
+
+#undef SQLITEWRAPPER_FORMAT_NAMESPACE_NAME
 #undef SQLITEWRAPPER_FORMAT_NAMESPACE
