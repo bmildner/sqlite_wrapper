@@ -49,9 +49,9 @@ else()
 #      target_compile_options(common_target_settings INTERFACE -D_FORTIFY_SOURCE=3)
     endif()
   endif()
-
-  target_link_libraries(common_target_settings INTERFACE fmt::fmt)
 endif()
+
+target_link_libraries(common_target_settings INTERFACE fmt::fmt)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   if (NOT DEFINED MSVC)

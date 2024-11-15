@@ -10,9 +10,7 @@ get_target_property(SQLITE3_INCLUDES unofficial::sqlite3::sqlite3 INTERFACE_INCL
 
 find_package(GTest CONFIG REQUIRED)
 
-if (NOT DEFINED MSVC)
-  find_package(fmt CONFIG REQUIRED)
-endif()
+find_package(fmt CONFIG REQUIRED)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE BOOL "Export compile commands for clang tools." FORCE)
 
