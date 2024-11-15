@@ -259,127 +259,134 @@ TEST_F(sqlite_wrapper_mocked_tests, open_fails)
                    StartsWith(sqlite_wrapper::format("invalid open_flags value  \"{}\"", to_underlying(bad_open_flags))));
 }
 
-TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_success)
+TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_no_param_success)
 {
   const auto database{expect_and_get_database()};
 
-  // no parameter
-  {
-    ::sqlite3_stmt statement{};
+  ::sqlite3_stmt statement{};
 
-    const auto stmt{expect_and_get_statement(database.get(), statement)};
+  const auto stmt{expect_and_get_statement(database.get(), statement)};
 
-    EXPECT_EQ(stmt.get(), &statement);
-  }
+  EXPECT_EQ(stmt.get(), &statement);
+}
 
-  // null parameter
-  {
-    constexpr std::optional<std::int64_t> optional_int{};
-    constexpr std::optional<double> optional_double{};
-    constexpr std::optional<std::string> optional_string{};
-    constexpr std::optional<sqlite_wrapper::byte_vector> optional_blob{};
+TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_null_param_success)
+{
+  const auto database{expect_and_get_database()};
 
-    ::sqlite3_stmt statement{};
+  constexpr std::optional<std::int64_t> optional_int{};
+  constexpr std::optional<double> optional_double{};
+  constexpr std::optional<std::string> optional_string{};
+  constexpr std::optional<sqlite_wrapper::byte_vector> optional_blob{};
 
-    const auto stmt{expect_and_get_statement(database.get(), statement,
-                                             {expect_null_bind(), expect_null_bind(),
-                                              expect_null_bind(), expect_null_bind(), expect_null_bind(), expect_null_bind()},
-                                             nullptr, std::nullopt,
-                                             optional_int, optional_double, optional_string, optional_blob)};
+  ::sqlite3_stmt statement{};
 
-    EXPECT_EQ(stmt.get(), &statement);
-  }
+  const auto stmt{expect_and_get_statement(database.get(), statement,
+                                           {expect_null_bind(), expect_null_bind(),
+                                            expect_null_bind(), expect_null_bind(), expect_null_bind(), expect_null_bind()},
+                                           nullptr, std::nullopt,
+                                           optional_int, optional_double, optional_string, optional_blob)};
 
-  // std::int64_t parameter
-  {
-    constexpr auto int64_value{std::int64_t{4711}};
-    constexpr auto int32_value{std::int32_t{4712}};
-    constexpr auto uint32_value{std::uint32_t{4713}};
-    constexpr auto int16_value{std::int16_t{4714}};
-    constexpr auto uint16_value{std::uint16_t{4715}};
-    constexpr auto int8_value{std::int8_t{16}};
-    constexpr auto uint8_value{std::uint8_t{17}};
-    constexpr std::optional<std::int64_t> optional_int64{4718};
-    constexpr std::optional<std::int16_t> optional_int16{4719};
+  EXPECT_EQ(stmt.get(), &statement);
+}
 
-    ::sqlite3_stmt statement{};
+TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_int64_param_success)
+{
+  const auto database{expect_and_get_database()};
 
-    const auto stmt{expect_and_get_statement(database.get(), statement,
-                                             {expect_int64_bind(int64_value),
-                                              expect_int64_bind(int32_value), expect_int64_bind(uint32_value),
-                                              expect_int64_bind(int16_value), expect_int64_bind(uint16_value),
-                                              expect_int64_bind(int8_value), expect_int64_bind(uint8_value),
-                                              expect_int64_bind(optional_int64.value()), expect_int64_bind(optional_int16.value())},
-                                             int64_value,
-                                             int32_value, uint32_value,
-                                             int16_value, uint16_value,
-                                             int8_value, uint8_value,
-                                             optional_int64, optional_int16)};
+  constexpr auto int64_value{std::int64_t{4711}};
+  constexpr auto int32_value{std::int32_t{4712}};
+  constexpr auto uint32_value{std::uint32_t{4713}};
+  constexpr auto int16_value{std::int16_t{4714}};
+  constexpr auto uint16_value{std::uint16_t{4715}};
+  constexpr auto int8_value{std::int8_t{16}};
+  constexpr auto uint8_value{std::uint8_t{17}};
+  constexpr std::optional<std::int64_t> optional_int64{4718};
+  constexpr std::optional<std::int16_t> optional_int16{4719};
 
-    EXPECT_EQ(stmt.get(), &statement);
-  }
+  ::sqlite3_stmt statement{};
 
-  // double parameter
-  {
-    constexpr auto double_value{double{1.23}};
-    constexpr auto float_value{float{4.56F}};
-    constexpr std::optional optional_double{9.87};
-    constexpr std::optional optional_float{10.3F};
+  const auto stmt{expect_and_get_statement(database.get(), statement,
+                                           {expect_int64_bind(int64_value),
+                                            expect_int64_bind(int32_value), expect_int64_bind(uint32_value),
+                                            expect_int64_bind(int16_value), expect_int64_bind(uint16_value),
+                                            expect_int64_bind(int8_value), expect_int64_bind(uint8_value),
+                                            expect_int64_bind(optional_int64.value()), expect_int64_bind(optional_int16.value())},
+                                           int64_value,
+                                           int32_value, uint32_value,
+                                           int16_value, uint16_value,
+                                           int8_value, uint8_value,
+                                           optional_int64, optional_int16)};
 
-    ::sqlite3_stmt statement{};
+  EXPECT_EQ(stmt.get(), &statement);
+}
 
-    const auto stmt{expect_and_get_statement(database.get(), statement,
-                                             {expect_double_bind(double_value), expect_double_bind(float_value),
-                                              expect_double_bind(optional_double.value()), expect_double_bind(optional_float.value())},
-                                             double_value, float_value, optional_double, optional_float)};
+TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_double_param_success)
+{
+  const auto database{expect_and_get_database()};
 
-    EXPECT_EQ(stmt.get(), &statement);
-  }
+  constexpr auto double_value{double{1.23}};
+  constexpr auto float_value{float{4.56F}};
+  constexpr std::optional optional_double{9.87};
+  constexpr std::optional optional_float{10.3F};
 
-  // text parameter
-  {
-    constexpr auto* char_ptr_value{"char* value"};
-    constexpr char char_array_value[]{"char[] value"};  // NOLINT(*-avoid-c-arrays)
-    const std::string string_value{"std::string value"};
-    constexpr auto string_view_value{std::string_view{"std::string_view value"}};
-    constexpr std::optional optional_string_view{std::string_view{"optional std::string_view value"}};
-    const std::optional optional_string{std::string{"optional std::string value"}};
+  ::sqlite3_stmt statement{};
 
-    ::sqlite3_stmt statement{};
+  const auto stmt{expect_and_get_statement(database.get(), statement,
+                                           {expect_double_bind(double_value), expect_double_bind(float_value),
+                                            expect_double_bind(optional_double.value()), expect_double_bind(optional_float.value())},
+                                           double_value, float_value, optional_double, optional_float)};
 
-    const auto stmt{expect_and_get_statement(database.get(), statement,
-                                             {expect_text_bind(char_ptr_value),
-                                              expect_text_bind({static_cast<const char*>(char_array_value)}),
-                                              expect_text_bind(string_value),
-                                              expect_text_bind(std::string{string_view_value}),
-                                              expect_text_bind(std::string{optional_string_view.value()}),
-                                              expect_text_bind(optional_string.value())},
-                                             char_ptr_value, char_array_value, string_value, string_view_value,
-                                             optional_string_view, optional_string)};
+  EXPECT_EQ(stmt.get(), &statement);
+}
 
-    EXPECT_EQ(stmt.get(), &statement);
-  }
+TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_text_param_success)
+{
+  const auto database{expect_and_get_database()};
 
-  // blob parameter
-  {
-    const auto byte_vector{to_byte_vector("byte vector blob")};
-    const auto const_byte_span{to_const_byte_span("const byte span blob")};
-    const std::optional optional_byte_vector{to_byte_vector("optional byte vector blob")};
-    const std::optional optional_const_byte_span{to_const_byte_span("optional const byte span blob")};
+  constexpr auto* char_ptr_value{"char* value"};
+  constexpr char char_array_value[]{"char[] value"};  // NOLINT(*-avoid-c-arrays)
+  const std::string string_value{"std::string value"};
+  constexpr auto string_view_value{std::string_view{"std::string_view value"}};
+  constexpr std::optional optional_string_view{std::string_view{"optional std::string_view value"}};
+  const std::optional optional_string{std::string{"optional std::string value"}};
 
-    ::sqlite3_stmt statement{};
+  ::sqlite3_stmt statement{};
 
-    const auto stmt{expect_and_get_statement(database.get(), statement,
-                                              {expect_blob_bind(byte_vector),
-                                               expect_blob_bind({const_byte_span.begin(), const_byte_span.end()}),
-                                               expect_blob_bind(optional_byte_vector.value()),
-                                               expect_blob_bind({optional_const_byte_span.value().begin(),
-                                                 optional_const_byte_span.value().end()})},
-                                             byte_vector, const_byte_span,
-                                             optional_byte_vector, optional_const_byte_span)};
+  const auto stmt{expect_and_get_statement(database.get(), statement,
+                                           {expect_text_bind(char_ptr_value),
+                                            expect_text_bind({static_cast<const char*>(char_array_value)}),
+                                            expect_text_bind(string_value),
+                                            expect_text_bind(std::string{string_view_value}),
+                                            expect_text_bind(std::string{optional_string_view.value()}),
+                                            expect_text_bind(optional_string.value())},
+                                           char_ptr_value, char_array_value, string_value, string_view_value,
+                                           optional_string_view, optional_string)};
 
-    EXPECT_EQ(stmt.get(), &statement);
-  }
+  EXPECT_EQ(stmt.get(), &statement);
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_blob_param_success)
+{
+  const auto database{expect_and_get_database()};
+
+  const auto byte_vector{to_byte_vector("byte vector blob")};
+  const auto const_byte_span{to_const_byte_span("const byte span blob")};
+  const std::optional optional_byte_vector{to_byte_vector("optional byte vector blob")};
+  const std::optional optional_const_byte_span{to_const_byte_span("optional const byte span blob")};
+
+  ::sqlite3_stmt statement{};
+
+  const auto stmt{expect_and_get_statement(database.get(), statement,
+                                            {expect_blob_bind(byte_vector),
+                                             expect_blob_bind({const_byte_span.begin(), const_byte_span.end()}),
+                                             expect_blob_bind(optional_byte_vector.value()),
+                                             expect_blob_bind({optional_const_byte_span.value().begin(),
+                                               optional_const_byte_span.value().end()})},
+                                           byte_vector, const_byte_span,
+                                           optional_byte_vector, optional_const_byte_span)};
+
+  EXPECT_EQ(stmt.get(), &statement);
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_complex_binding_success)
