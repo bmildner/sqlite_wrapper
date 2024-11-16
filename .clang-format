@@ -1,4 +1,6 @@
 ---
+Language: Cpp
+IndentWidth: 2
 BasedOnStyle: Google
 AlignConsecutiveMacros: false
 AlignConsecutiveAssignments: false
@@ -22,6 +24,5 @@ IncludeCategories:
   - Regex: '^\"'
     Priority: 3000
 IndentPPDirectives: "AfterHash"
-Language: Cpp
 DerivePointerAlignment: false
 PointerAlignment: Left
