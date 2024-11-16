@@ -1,7 +1,8 @@
 ---
 Language: Cpp
-IndentWidth: 2
 BasedOnStyle: Google
+IndentWidth: 2
+ColumnLimit: 130
 AlignConsecutiveMacros: false
 AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
@@ -12,7 +13,6 @@ AllowShortIfStatementsOnASingleLine: "Never"
 AllowShortLoopsOnASingleLine: false
 AllowShortLambdasOnASingleLine: "All"
 BreakBeforeBraces: "Allman"
-ColumnLimit: 130
 IncludeBlocks: Regroup
 IncludeCategories:
   - Regex: '^<[^\.]*>'
@@ -26,3 +26,4 @@ IncludeCategories:
 IndentPPDirectives: "AfterHash"
 DerivePointerAlignment: false
 PointerAlignment: Left
+NamespaceIndentation: "All"
