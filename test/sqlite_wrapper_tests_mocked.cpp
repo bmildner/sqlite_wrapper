@@ -143,20 +143,20 @@ namespace
 
     template <typename... Params>
     static auto expect_and_get_statement(const sqlite_wrapper::db_with_location& database, const expect_bind_list& binders,
-                                         Params&&... params) -> sqlite_wrapper::statement
+                                         Params&&... params)
     {
-      static ::sqlite3_stmt statement{};
+      auto stmt_ptr{std::make_unique<::sqlite3_stmt>()};
 
-      auto stmt{expect_and_get_statement(database, statement, binders, std::forward<Params>(params)...)};
+      auto stmt{expect_and_get_statement(database, *stmt_ptr, binders, std::forward<Params>(params)...)};
 
-      EXPECT_EQ(stmt.get(), &statement);
+      EXPECT_EQ(stmt.get(), stmt_ptr.get());
 
-      return stmt;
+      return std::make_pair(std::move(stmt_ptr), std::move(stmt));
     }
   };  // class sqlite_wrapper_mocked_tests
 
   void sqlite_wrapper_mocked_tests::SetUp()
-  {   
+  {
     create_and_set_global_mock();
   }
 
@@ -252,8 +252,8 @@ TEST_F(sqlite_wrapper_mocked_tests, open_fails)
     AllOf(StartsWith(sqlite_wrapper::format("sqlite3_open() returned nullptr for database \"{}\"", db_file_name)), HasSubstr("SQLITE_ERROR")));
 
   // NOLINTNEXTLINE(hicpp-signed-bitwise)
-  const sqlite_wrapper::open_flags bad_open_flags{sqlite_wrapper::to_underlying(sqlite_wrapper::open_flags::open_only) |
-                                                  sqlite_wrapper::to_underlying(sqlite_wrapper::open_flags::open_or_create)};
+  const sqlite_wrapper::open_flags bad_open_flags{to_underlying(sqlite_wrapper::open_flags::open_only) |
+                                                  to_underlying(sqlite_wrapper::open_flags::open_or_create)};
 
   ASSERT_THROW_MSG((void)sqlite_wrapper::open(db_file_name, bad_open_flags), sqlite_wrapper::sqlite_error,
                    StartsWith(sqlite_wrapper::format("invalid open_flags value  \"{}\"", to_underlying(bad_open_flags))));
@@ -279,15 +279,10 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_null
   constexpr std::optional<std::string> optional_string{};
   constexpr std::optional<sqlite_wrapper::byte_vector> optional_blob{};
 
-  ::sqlite3_stmt statement{};
-
-  const auto stmt{expect_and_get_statement(database.get(), statement,
-                                           {expect_null_bind(), expect_null_bind(),
-                                            expect_null_bind(), expect_null_bind(), expect_null_bind(), expect_null_bind()},
-                                           nullptr, std::nullopt,
-                                           optional_int, optional_double, optional_string, optional_blob)};
-
-  EXPECT_EQ(stmt.get(), &statement);
+  expect_and_get_statement(
+      database.get(),
+      {expect_null_bind(), expect_null_bind(), expect_null_bind(), expect_null_bind(), expect_null_bind(), expect_null_bind()},
+      nullptr, std::nullopt, optional_int, optional_double, optional_string, optional_blob);
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_int64_param_success)
@@ -304,21 +299,12 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_int6
   constexpr std::optional<std::int64_t> optional_int64{4718};
   constexpr std::optional<std::int16_t> optional_int16{4719};
 
-  ::sqlite3_stmt statement{};
-
-  const auto stmt{expect_and_get_statement(database.get(), statement,
-                                           {expect_int64_bind(int64_value),
-                                            expect_int64_bind(int32_value), expect_int64_bind(uint32_value),
-                                            expect_int64_bind(int16_value), expect_int64_bind(uint16_value),
-                                            expect_int64_bind(int8_value), expect_int64_bind(uint8_value),
-                                            expect_int64_bind(optional_int64.value()), expect_int64_bind(optional_int16.value())},
-                                           int64_value,
-                                           int32_value, uint32_value,
-                                           int16_value, uint16_value,
-                                           int8_value, uint8_value,
-                                           optional_int64, optional_int16)};
-
-  EXPECT_EQ(stmt.get(), &statement);
+  expect_and_get_statement(
+      database.get(),
+      {expect_int64_bind(int64_value), expect_int64_bind(int32_value), expect_int64_bind(uint32_value),
+       expect_int64_bind(int16_value), expect_int64_bind(uint16_value), expect_int64_bind(int8_value),
+       expect_int64_bind(uint8_value), expect_int64_bind(optional_int64.value()), expect_int64_bind(optional_int16.value())},
+      int64_value, int32_value, uint32_value, int16_value, uint16_value, int8_value, uint8_value, optional_int64, optional_int16);
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_double_param_success)
@@ -330,14 +316,10 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_doub
   constexpr std::optional optional_double{9.87};
   constexpr std::optional optional_float{10.3F};
 
-  ::sqlite3_stmt statement{};
-
-  const auto stmt{expect_and_get_statement(database.get(), statement,
-                                           {expect_double_bind(double_value), expect_double_bind(float_value),
-                                            expect_double_bind(optional_double.value()), expect_double_bind(optional_float.value())},
-                                           double_value, float_value, optional_double, optional_float)};
-
-  EXPECT_EQ(stmt.get(), &statement);
+  expect_and_get_statement(database.get(),
+                           {expect_double_bind(double_value), expect_double_bind(float_value),
+                            expect_double_bind(optional_double.value()), expect_double_bind(optional_float.value())},
+                           double_value, float_value, optional_double, optional_float);
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_text_param_success)
@@ -351,19 +333,12 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_text
   constexpr std::optional optional_string_view{std::string_view{"optional std::string_view value"}};
   const std::optional optional_string{std::string{"optional std::string value"}};
 
-  ::sqlite3_stmt statement{};
-
-  const auto stmt{expect_and_get_statement(database.get(), statement,
-                                           {expect_text_bind(char_ptr_value),
-                                            expect_text_bind({static_cast<const char*>(char_array_value)}),
-                                            expect_text_bind(string_value),
-                                            expect_text_bind(std::string{string_view_value}),
-                                            expect_text_bind(std::string{optional_string_view.value()}),
-                                            expect_text_bind(optional_string.value())},
-                                           char_ptr_value, char_array_value, string_value, string_view_value,
-                                           optional_string_view, optional_string)};
-
-  EXPECT_EQ(stmt.get(), &statement);
+  expect_and_get_statement(
+      database.get(),
+      {expect_text_bind(char_ptr_value), expect_text_bind({static_cast<const char*>(char_array_value)}),
+       expect_text_bind(string_value), expect_text_bind(std::string{string_view_value}),
+       expect_text_bind(std::string{optional_string_view.value()}), expect_text_bind(optional_string.value())},
+      char_ptr_value, char_array_value, string_value, string_view_value, optional_string_view, optional_string);
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_blob_param_success)
@@ -375,18 +350,11 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_blob
   const std::optional optional_byte_vector{to_byte_vector("optional byte vector blob")};
   const std::optional optional_const_byte_span{to_const_byte_span("optional const byte span blob")};
 
-  ::sqlite3_stmt statement{};
-
-  const auto stmt{expect_and_get_statement(database.get(), statement,
-                                            {expect_blob_bind(byte_vector),
-                                             expect_blob_bind({const_byte_span.begin(), const_byte_span.end()}),
-                                             expect_blob_bind(optional_byte_vector.value()),
-                                             expect_blob_bind({optional_const_byte_span.value().begin(),
-                                               optional_const_byte_span.value().end()})},
-                                           byte_vector, const_byte_span,
-                                           optional_byte_vector, optional_const_byte_span)};
-
-  EXPECT_EQ(stmt.get(), &statement);
+  expect_and_get_statement(database.get(),
+                           {expect_blob_bind(byte_vector), expect_blob_bind({const_byte_span.begin(), const_byte_span.end()}),
+                            expect_blob_bind(optional_byte_vector.value()),
+                            expect_blob_bind({optional_const_byte_span.value().begin(), optional_const_byte_span.value().end()})},
+                           byte_vector, const_byte_span, optional_byte_vector, optional_const_byte_span);
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_complex_binding_success)
@@ -398,8 +366,9 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_complex_binding_su
     const std::vector vector_nullptr{nullptr, nullptr, nullptr, nullptr};
     constexpr std::array array_nullopt{std::nullopt, std::nullopt, std::nullopt};
 
-    expect_and_get_statement(database.get(), {expect_null_bind(), expect_null_bind(), expect_null_bind(), expect_null_bind(),
-                                              expect_null_bind(), expect_null_bind(), expect_null_bind()},
+    expect_and_get_statement(database.get(),
+                             {expect_null_bind(), expect_null_bind(), expect_null_bind(), expect_null_bind(), expect_null_bind(),
+                              expect_null_bind(), expect_null_bind()},
                              vector_nullptr, array_nullopt);
   }
 
@@ -426,7 +395,7 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_complex_binding_su
   // range of doubles parameters
   {
     const std::set double_set{0.12345, 1.23456, 2.34567, 3.45678, 4.56789};
-    const auto double_range{std::ranges::take_view{
+    const auto double_view{std::ranges::take_view{
         std::ranges::transform_view{std::ranges::reverse_view{double_set}, [](double value) { return value * 2.0; }}, 3}};
 
     expect_bind_list expected_binder;
@@ -436,12 +405,12 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_complex_binding_su
       expected_binder.push_back(expect_double_bind(value));
     }
 
-    for (const auto value : double_range)
+    for (const auto value : double_view)
     {
       expected_binder.push_back(expect_double_bind(value));
     }
 
-    expect_and_get_statement(database.get(), expected_binder, double_set, double_range);
+    expect_and_get_statement(database.get(), expected_binder, double_set, double_view);
   }
 
   // TODO: tests for other database base types and other containers/ranges
