@@ -143,15 +143,15 @@ namespace
 
     template <typename... Params>
     static auto expect_and_get_statement(const sqlite_wrapper::db_with_location& database, const expect_bind_list& binders,
-                                         Params&&... params)
+                                         Params&&... params) -> sqlite_wrapper::statement
     {
-      auto stmt_ptr{std::make_unique<::sqlite3_stmt>()};
+      static ::sqlite3_stmt statement{};
 
-      auto stmt{expect_and_get_statement(database, *stmt_ptr, binders, std::forward<Params>(params)...)};
+      auto stmt{expect_and_get_statement(database, statement, binders, std::forward<Params>(params)...)};
 
-      EXPECT_EQ(stmt.get(), stmt_ptr.get());
+      EXPECT_EQ(stmt.get(), &statement);
 
-      return std::make_pair(std::move(stmt_ptr), std::move(stmt));
+      return stmt;
     }
   };  // class sqlite_wrapper_mocked_tests
 
