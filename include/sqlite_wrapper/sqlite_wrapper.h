@@ -81,7 +81,7 @@ namespace sqlite_wrapper
   {
     typename std::tuple_size<T>::type;
     requires std::derived_from<std::tuple_size<T>, std::integral_constant<std::size_t, std::tuple_size_v<T>>>;
-  } 
+  }
   && []<std::size_t... N>(std::index_sequence<N...>)
   {
     return (has_tuple_element<T, N> && ...);
@@ -150,7 +150,7 @@ namespace sqlite_wrapper
     SQLITE_WRAPPER_EXPORT auto get_column(const stmt_with_location& stmt, int index, double& value, bool maybe_null) -> bool;
     SQLITE_WRAPPER_EXPORT auto get_column(const stmt_with_location& stmt, int index, std::string& value, bool maybe_null) -> bool;
     SQLITE_WRAPPER_EXPORT auto get_column(const stmt_with_location& stmt, int index, byte_vector& value, bool maybe_null) -> bool;
-    
+
     void get_column(const stmt_with_location& stmt, int index, basic_database_type auto& value)
     {
       get_column(stmt, index, value, false);
@@ -202,7 +202,7 @@ namespace sqlite_wrapper
 
   [[nodiscard]] SQLITE_WRAPPER_EXPORT auto step(const stmt_with_location& stmt) -> bool;
 
-  
+
   template <row_type Row>
   [[nodiscard]] auto get_row(const stmt_with_location& stmt) -> Row
   {
