@@ -29,6 +29,7 @@ using testing::IsNull;
 using testing::Mock;
 using testing::NotNull;
 using testing::Return;
+using testing::Sequence;
 using testing::SetArgPointee;
 using testing::StartsWith;
 using testing::StrEq;
@@ -77,32 +78,48 @@ namespace
 
     static auto expect_and_get_database() -> sqlite_wrapper::database;
 
-    using expect_bind_function = std::function<void(::sqlite3_stmt* stmt, int index)>;
+    using expect_bind_function = std::function<void(::sqlite3_stmt* stmt, int index, const Sequence& sequence)>;
     using expect_bind_list = std::vector<expect_bind_function>;
 
     static auto expect_null_bind() -> expect_bind_function
     {
-      return [](::sqlite3_stmt* stmt, int index)
-      { EXPECT_CALL(*get_mock(), sqlite3_bind_null(stmt, index)).WillOnce(Return(SQLITE_OK)).RetiresOnSaturation(); };
+      return [](::sqlite3_stmt* stmt, int index, const Sequence& sequence)
+      {
+        EXPECT_CALL(*get_mock(), sqlite3_bind_null(stmt, index))
+            .InSequence(sequence)
+            .WillOnce(Return(SQLITE_OK))
+            .RetiresOnSaturation();
+      };
     }
 
     static auto expect_int64_bind(std::int64_t value) -> expect_bind_function
     {
-      return [value](::sqlite3_stmt* stmt, int index)
-      { EXPECT_CALL(*get_mock(), sqlite3_bind_int64(stmt, index, value)).WillOnce(Return(SQLITE_OK)).RetiresOnSaturation(); };
+      return [value](::sqlite3_stmt* stmt, int index, const Sequence& sequence)
+      {
+        EXPECT_CALL(*get_mock(), sqlite3_bind_int64(stmt, index, value))
+            .InSequence(sequence)
+            .WillOnce(Return(SQLITE_OK))
+            .RetiresOnSaturation();
+      };
     }
 
     static auto expect_double_bind(double value) -> expect_bind_function
     {
-      return [value](::sqlite3_stmt* stmt, int index)
-      { EXPECT_CALL(*get_mock(), sqlite3_bind_double(stmt, index, value)).WillOnce(Return(SQLITE_OK)).RetiresOnSaturation(); };
+      return [value](::sqlite3_stmt* stmt, int index, const Sequence& sequence)
+      {
+        EXPECT_CALL(*get_mock(), sqlite3_bind_double(stmt, index, value))
+            .InSequence(sequence)
+            .WillOnce(Return(SQLITE_OK))
+            .RetiresOnSaturation();
+      };
     }
 
     static auto expect_text_bind(const std::string& value) -> expect_bind_function
     {
-      return [value](::sqlite3_stmt* stmt, int index)
+      return [value](::sqlite3_stmt* stmt, int index, const Sequence& sequence)
       {
         EXPECT_CALL(*get_mock(), sqlite3_bind_text64(stmt, index, StrEq(value), value.size(), IsNull(), SQLITE_UTF8))
+            .InSequence(sequence)
             .WillOnce(Return(SQLITE_OK))
             .RetiresOnSaturation();
       };
@@ -110,9 +127,10 @@ namespace
 
     static auto expect_blob_bind(const sqlite_wrapper::byte_vector& value) -> expect_bind_function
     {
-      return [value](::sqlite3_stmt* stmt, int index)
+      return [value](::sqlite3_stmt* stmt, int index, const Sequence& sequence)
       {
         EXPECT_CALL(*get_mock(), sqlite3_bind_blob64(stmt, index, NotNull(), value.size(), IsNull()))
+            .InSequence(sequence)
             .WillOnce(DoAll(Invoke(
                                 [value](sqlite3_stmt*, int, const void* param_value, sqlite3_uint64 byteSize, void (*)(void*))
                                 {
@@ -188,20 +206,22 @@ namespace
                                                              Params&&... params) -> sqlite_wrapper::statement
   {
     // make sure mocks are called in the correct order!
-    const InSequence sequence_guard;
+    const Sequence sequence{};
 
     EXPECT_CALL(*get_mock(),
                 sqlite3_prepare_v2(database.value, StrEq(dummy_sql), static_cast<int>(dummy_sql.size()), NotNull(), IsNull()))
-        .WillOnce(DoAll(SetArgPointee<3>(&statement), Return(SQLITE_OK)));
+        .InSequence(sequence)
+        .WillOnce(DoAll(SetArgPointee<3>(&statement), Return(SQLITE_OK)))
+        .RetiresOnSaturation();
 
     int index{1};
 
     for (const auto& binder : binders)
     {
-      binder(&statement, index++);
+      binder(&statement, index++, sequence);
     }
 
-    EXPECT_CALL(*get_mock(), sqlite3_finalize(&statement)).WillOnce(Return(SQLITE_OK));
+    EXPECT_CALL(*get_mock(), sqlite3_finalize(&statement)).InSequence(sequence).WillOnce(Return(SQLITE_OK)).RetiresOnSaturation();
 
     auto stmt{sqlite_wrapper::create_prepared_statement(database, dummy_sql, std::forward<Params>(params)...)};
 
@@ -354,61 +374,73 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_blob
                            byte_vector, const_byte_span, optional_byte_vector, optional_const_byte_span);
 }
 
-TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_complex_binding_success)
+TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_range_binding_null_params_success)
 {
   const auto database{expect_and_get_database()};
 
-  // range of null parameters
-  {
-    const std::vector vector_nullptr{nullptr, nullptr, nullptr, nullptr};
-    constexpr std::array array_nullopt{std::nullopt, std::nullopt, std::nullopt};
+  const std::vector vector_nullptr{nullptr, nullptr, nullptr, nullptr};
+  constexpr std::array array_nullopt{std::nullopt, std::nullopt, std::nullopt};
 
-    expect_and_get_statement(database.get(),
-                             {expect_null_bind(), expect_null_bind(), expect_null_bind(), expect_null_bind(), expect_null_bind(),
-                              expect_null_bind(), expect_null_bind()},
-                             vector_nullptr, array_nullopt);
+  expect_bind_list expected_binder;
+
+  for (size_t i = 0; i < vector_nullptr.size(); i++)
+  {
+    expected_binder.push_back(expect_null_bind());
   }
 
-  // range of int64 parameters
+  for (size_t i = 0; i < array_nullopt.size(); i++)
   {
-    const std::list<std::int64_t> int64_list{4711, 4712, 4713, 4714, 4715, 4716};
-    constexpr std::array<std::int64_t, 4> int64_array{4717, 4718, 4719, 4720};
-
-    expect_bind_list expected_binder;
-
-    for (const auto value : int64_list)
-    {
-      expected_binder.push_back(expect_int64_bind(value));
-    }
-
-    for (const auto value : int64_array)
-    {
-      expected_binder.push_back(expect_int64_bind(value));
-    }
-
-    expect_and_get_statement(database.get(), expected_binder, int64_list, int64_array);
+    expected_binder.push_back(expect_null_bind());
   }
 
-  // range of doubles parameters
-  {
-    const std::set double_set{0.12345, 1.23456, 2.34567, 3.45678, 4.56789};
-    const auto double_view{std::ranges::take_view{
-        std::ranges::transform_view{std::ranges::reverse_view{double_set}, [](double value) { return value * 2.0; }}, 3}};
-
-    expect_bind_list expected_binder;
-
-    for (const auto value : double_set)
-    {
-      expected_binder.push_back(expect_double_bind(value));
-    }
-
-    for (const auto value : double_view)
-    {
-      expected_binder.push_back(expect_double_bind(value));
-    }
-
-    expect_and_get_statement(database.get(), expected_binder, double_set, double_view);
-  }
-
-  // TODO: tests for other database base types and other containers/ranges
+  expect_and_get_statement(database.get(),
+                           expected_binder,
+                           vector_nullptr, array_nullopt);
 }
+
+TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_range_binding_int64_params_success)
+{
+  const auto database{expect_and_get_database()};
+
+  const std::list<std::int64_t> int64_list{4711, 4712, 4713, 4714, 4715, 4716};
+  constexpr std::array<std::int64_t, 4> int64_array{4717, 4718, 4719, 4720};
+
+  expect_bind_list expected_binder;
+
+  for (const auto value : int64_list)
+  {
+    expected_binder.push_back(expect_int64_bind(value));
+  }
+
+  for (const auto value : int64_array)
+  {
+    expected_binder.push_back(expect_int64_bind(value));
+  }
+
+  expect_and_get_statement(database.get(), expected_binder, int64_list, int64_array);
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_range_binding_double_params_success)
+{
+  const auto database{expect_and_get_database()};
+
+  const std::set double_set{0.12345, 1.23456, 2.34567, 3.45678, 4.56789};
+  const auto double_view{std::ranges::take_view{
+      std::ranges::transform_view{std::ranges::reverse_view{double_set}, [](double value) { return value * 2.0; }}, 3}};
+
+  expect_bind_list expected_binder;
+
+  for (const auto value : double_set)
+  {
+    expected_binder.push_back(expect_double_bind(value));
+  }
+
+  for (const auto value : double_view)
+  {
+    expected_binder.push_back(expect_double_bind(value));
+  }
+
+  expect_and_get_statement(database.get(), expected_binder, double_set, double_view);
+}
+
+// TODO: tests for other database base types and other containers/ranges

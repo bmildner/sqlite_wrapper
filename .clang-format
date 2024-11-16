@@ -27,3 +27,4 @@ IndentPPDirectives: "AfterHash"
 DerivePointerAlignment: false
 PointerAlignment: Left
 NamespaceIndentation: "All"
+AllowShortCompoundRequirementOnASingleLine: true
