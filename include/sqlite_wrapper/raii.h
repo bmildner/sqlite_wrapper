@@ -3,7 +3,7 @@
 #include <memory>
 
 #include "sqlite_wrapper/config.h"
-#include "sqlite_wrapper/location.h"
+#include "sqlite_wrapper/with_location.h"
 
 // forward declarations of sqlite3 (pimpl) types
 extern "C"
