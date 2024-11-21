@@ -14,7 +14,7 @@
 
 #include "sqlite_wrapper/config.h"
 #include "sqlite_wrapper/raii.h"
-#include "sqlite_wrapper/location.h"
+#include "sqlite_wrapper/with_location.h"
 #include "sqlite_wrapper/error.h"
 #include "sqlite_wrapper/format.h"
 

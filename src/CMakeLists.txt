@@ -5,7 +5,7 @@
         "../include/sqlite_wrapper/error.h" 
         "sqlite_wrapper_error.cpp" 
         "../include/sqlite_wrapper/format.h" 
-        "../include/sqlite_wrapper/location.h" 
+        "../include/sqlite_wrapper/with_location.h"
         "../include/sqlite_wrapper/create_table.h"
         "../include/sqlite_wrapper/config.h")
 
