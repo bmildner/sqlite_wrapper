@@ -443,4 +443,27 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_range_binding_doub
   expect_and_get_statement(database.get(), expected_binder, double_set, double_view);
 }
 
+TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_range_binding_text_params_success)
+{
+  const auto database{expect_and_get_database()};
+
+  using namespace std::literals;
+  const std::vector string_vector{"abc"s, "defg"s, "hijklm"s, "nopqrst"s};
+  const std::list string_view_list{"0.12345"sv, "1.23456"sv, "2.34567"sv, "3.45678"sv, "4.56789"sv};
+
+  expect_bind_list expected_binder;
+
+  for (const auto& value : string_vector)
+  {
+    expected_binder.push_back(expect_text_bind(value));
+  }
+
+  for (const auto value : string_view_list)
+  {
+    expected_binder.push_back(expect_text_bind(std::string{value}));
+  }
+
+  expect_and_get_statement(database.get(), expected_binder, string_vector, string_view_list);
+}
+
 // TODO: tests for other database base types and other containers/ranges
