@@ -15,11 +15,11 @@ namespace sqlite_wrapper
 
     SQLITE_WRAPPER_EXPORT sqlite_error(const std::string& what, const stmt_with_location& stmt, int error);
 
-    inline sqlite_error(const std::string& what, const stmt_with_location& stmt)
+    sqlite_error(const std::string& what, const stmt_with_location& stmt)
       : sqlite_error(what, stmt, 0)
     {}
 
-    inline sqlite_error(const std::string& what, int error, const std::source_location& loc = std::source_location::current())
+    sqlite_error(const std::string& what, int error, const std::source_location& loc = std::source_location::current())
       : sqlite_error(what, db_with_location{static_cast<sqlite3*>(nullptr), loc}, error)
     {}
 

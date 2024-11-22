@@ -10,5 +10,5 @@ if ((ENABLE_STATIC_ANALYSIS) AND (NOT DEFINED MSVC))
   endif()
 
   # enable clang-tidy
-  set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY}; -extra-arg=-Wno-unknown-warning-option -extra-arg=-Wno-ignored-optimization-argument)
+  set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY}; -extra-arg=-Wno-unknown-warning-option; -extra-arg=-Wno-ignored-optimization-argument)
 endif()

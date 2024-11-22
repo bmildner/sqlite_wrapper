@@ -38,10 +38,13 @@ namespace sqlite_wrapper
 }
 
 template<>
+// NOLINTNEXTLINE(cert-dcl58-cpp) modification of 'std' namespace can result in undefined behavior
 struct SQLITEWRAPPER_FORMAT_NAMESPACE_NAME::formatter<std::source_location>
 {
+  // NOLINTNEXTLINE(readability-convert-member-functions-to-static) non-static mandated by standard
   constexpr auto parse(SQLITEWRAPPER_FORMAT_NAMESPACE::format_parse_context& parse_ctx)
   {
+    // NOLINTNEXTLINE(readability-qualified-auto) false positive!
     auto iter{parse_ctx.begin()};
     // skip spaces and tabs
     while ((iter != parse_ctx.end()) && (*iter != '}') && ((*iter == ' ') || (*iter == '\t')))
