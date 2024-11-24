@@ -11,6 +11,7 @@ using ::testing::Test;
 using ::testing::StartsWith;
 using ::testing::EndsWith;
 using ::testing::AllOf;
+using ::testing::HasSubstr;
 
 namespace
 {
@@ -65,5 +66,7 @@ TEST_F(sqlite_wrapper_tests, open)
 TEST_F(sqlite_wrapper_tests, open_failes)
 {
   ASSERT_THROW_MSG((void) sqlite_wrapper::open(temp_db_file_name.string(), sqlite_wrapper::open_flags::open_only), sqlite_wrapper::sqlite_error,
-    AllOf(StartsWith("sqlite3_open() failed to open database"), EndsWith("failed with unable to open database file")));
+    AllOf(StartsWith("sqlite3_open() failed to open database"), HasSubstr("failed with: unable to open database file"),
+      HasSubstr(temp_db_file_name.string()), HasSubstr("sqlite_wrapper_tests.cpp:"),
+      EndsWith("'virtual void sqlite_wrapper_tests_open_failes_Test::TestBody()'")));
 }

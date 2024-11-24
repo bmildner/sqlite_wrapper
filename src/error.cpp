@@ -43,11 +43,11 @@ namespace sqlite_wrapper
   }  // unnamed namespace
 
   sqlite_error::sqlite_error(const std::string& what, const db_with_location& database, int error)
-    : std::runtime_error(sqlite_wrapper::format("{}, failed with {}", what, error_to_string(database.value, error))), m_location(database.location)
+    : std::runtime_error(sqlite_wrapper::format("{}, failed with: {} in {}", what, error_to_string(database.value, error), database.location)), m_location(database.location)
   {}
 
   sqlite_error::sqlite_error(const std::string& what, const stmt_with_location& stmt, int error)
-    : std::runtime_error(sqlite_wrapper::format("{}, failed with {}", what, error_to_string(stmt.value, error))), m_location(stmt.location)
+    : std::runtime_error(sqlite_wrapper::format("{}, failed with: {} in {}", what, error_to_string(stmt.value, error), stmt.location)), m_location(stmt.location)
   {}
 
   auto sqlite_error::where() const -> const std::source_location&
