@@ -31,6 +31,8 @@ namespace sqlite_wrapper
     return SQLITEWRAPPER_FORMAT_NAMESPACE::format(fmt, std::forward<Args>(args)...);
   }
 
+  using format_error = SQLITEWRAPPER_FORMAT_NAMESPACE::format_error;
+
 #ifdef __cpp_lib_to_underlying
   using std::to_underlying;
 #else

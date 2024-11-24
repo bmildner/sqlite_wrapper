@@ -4,14 +4,14 @@
 #include <filesystem>
 
 #include "sqlite_wrapper/sqlite_wrapper.h"
-
+#include "sqlite_wrapper/format.h"
 #include "assert_throw_msg.h"
 
 using ::testing::Test;
 using ::testing::StartsWith;
-using ::testing::EndsWith;
 using ::testing::AllOf;
 using ::testing::HasSubstr;
+using ::testing::StrEq;
 
 namespace
 {
@@ -65,8 +65,50 @@ TEST_F(sqlite_wrapper_tests, open)
 
 TEST_F(sqlite_wrapper_tests, open_failes)
 {
+  constexpr auto location{std::source_location::current()};
+
   ASSERT_THROW_MSG((void) sqlite_wrapper::open(temp_db_file_name.string(), sqlite_wrapper::open_flags::open_only), sqlite_wrapper::sqlite_error,
     AllOf(StartsWith("sqlite3_open() failed to open database"), HasSubstr("failed with: unable to open database file"),
-      HasSubstr(temp_db_file_name.string()), HasSubstr("sqlite_wrapper_tests.cpp:"),
-      EndsWith("'virtual void sqlite_wrapper_tests_open_failes_Test::TestBody()'")));
+      HasSubstr(temp_db_file_name.string()), HasSubstr(location.file_name()), HasSubstr(location.function_name())));
+}
+
+// TODO: maybe move to separate file
+TEST(sqlite_wrapper_utils_tests, format_source_location_success)
+{
+  constexpr auto location{std::source_location::current()};
+
+  const auto result{sqlite_wrapper::format("{}", location)};
+
+  ASSERT_EQ(result, sqlite_wrapper::format("{}:{} '{}'", location.file_name(), location.line(), location.function_name()));
+
+  ASSERT_EQ(sqlite_wrapper::format("{}", location), sqlite_wrapper::format("{:  \t \t }", location));
+}
+
+TEST(sqlite_wrapper_utils_tests, format_source_location_fails)
+{
+  using namespace std::string_literals;
+
+  const auto fmt_str{"{:6}"s};
+
+  ASSERT_THROW_MSG((void)sqlite_wrapper::format(fmt_str, std::source_location::current()), sqlite_wrapper::format_error,
+    StrEq("only an empty format-spec is supported"));
+}
+
+TEST(sqlite_wrapper_utils_tests, format_source_location_wchar_success)
+{
+  constexpr auto location{std::source_location::current()};
+
+  const auto result{std::format(L"{}", location)};
+
+  ASSERT_EQ(result, std::format(L"{}:{} '{}'", sqlite_wrapper::to_wstring(location.file_name()), location.line(),
+    sqlite_wrapper::to_wstring(location.function_name())));
+
+  ASSERT_EQ(sqlite_wrapper::format(L"{}", location), sqlite_wrapper::format(L"{:  \t \t }", location));
+}
+
+TEST(sqlite_wrapper_utils_tests, to_wstring_success)
+{
+  ASSERT_EQ(sqlite_wrapper::to_wstring(nullptr), L"");
+  ASSERT_EQ(sqlite_wrapper::to_wstring("1qay2wsx3edc4rfv5tgb6zhn7ujm8ik,9ol.0p-+#*"), L"1qay2wsx3edc4rfv5tgb6zhn7ujm8ik,9ol.0p-+#*");
+  ASSERT_EQ(sqlite_wrapper::to_wstring("QAYWSXEDCRFVTGBZHNUJMIKOLP;:_"), L"QAYWSXEDCRFVTGBZHNUJMIKOLP;:_");
 }
