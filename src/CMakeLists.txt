@@ -2,6 +2,7 @@
         "../include/sqlite_wrapper/sqlite_wrapper.h" 
         "../include/sqlite_wrapper/raii.h" 
         "raii.cpp"
+        "string.cpp"
         "../include/sqlite_wrapper/sqlite_error.h"
         "sqlite_error.cpp"
         "../include/sqlite_wrapper/format.h" 

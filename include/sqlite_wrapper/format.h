@@ -4,8 +4,10 @@
 #include <utility>
 #include <source_location>
 
+#include "sqlite_wrapper/string.h"
+
 #ifdef __has_include
-#  if __has_include(<format>)
+#  if ! __has_include(<format>)
 #    include <format>
 #    define SQLITEWRAPPER_FORMAT_NAMESPACE_NAME std
 #    define SQLITEWRAPPER_FORMAT_NAMESPACE ::std
@@ -31,6 +33,14 @@ namespace sqlite_wrapper
     return SQLITEWRAPPER_FORMAT_NAMESPACE::format(fmt, std::forward<Args>(args)...);
   }
 
+  template<typename... Args>
+  [[nodiscard]] auto format(SQLITEWRAPPER_FORMAT_NAMESPACE::wformat_string<Args...> fmt, Args&&... args) -> std::wstring
+  {
+    return SQLITEWRAPPER_FORMAT_NAMESPACE::format(fmt, std::forward<Args>(args)...);
+  }
+
+  using format_error = SQLITEWRAPPER_FORMAT_NAMESPACE::format_error;
+
 #ifdef __cpp_lib_to_underlying
   using std::to_underlying;
 #else
@@ -46,7 +56,7 @@ namespace SQLITEWRAPPER_FORMAT_NAMESPACE_NAME  // doxygen can't handle namespace
 {
   template<>
   // NOLINTNEXTLINE(cert-dcl58-cpp) modification of 'std' namespace can result in undefined behavior
-  struct formatter<std::source_location>
+  struct formatter<std::source_location, char>
   {
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static) non-static mandated by standard
     constexpr auto parse(SQLITEWRAPPER_FORMAT_NAMESPACE::format_parse_context& parse_ctx)
@@ -60,15 +70,44 @@ namespace SQLITEWRAPPER_FORMAT_NAMESPACE_NAME  // doxygen can't handle namespace
       }
       if ((iter != parse_ctx.end()) && (*iter != '}'))
       {
-        throw SQLITEWRAPPER_FORMAT_NAMESPACE::format_error("only an empty format-spec is supported");
+        throw sqlite_wrapper::format_error("only an empty format-spec is supported");
       }
       return iter;
     }
 
-    template<typename FmtContext>
-    auto format(std::source_location location, FmtContext& ctx) const
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static) non-static mandated by standard
+    auto format(std::source_location location, SQLITEWRAPPER_FORMAT_NAMESPACE::format_context& ctx) const
     {
       return SQLITEWRAPPER_FORMAT_NAMESPACE::format_to(ctx.out(), "{}:{} '{}'", location.file_name(), location.line(), location.function_name());
+    }
+  };
+
+  template<>
+  // NOLINTNEXTLINE(cert-dcl58-cpp) modification of 'std' namespace can result in undefined behavior
+  struct formatter<std::source_location, wchar_t>
+  {
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static) non-static mandated by standard
+    constexpr auto parse(SQLITEWRAPPER_FORMAT_NAMESPACE::wformat_parse_context& parse_ctx)
+    {
+      // NOLINTNEXTLINE(readability-qualified-auto) false positive!
+      auto iter{parse_ctx.begin()};
+      // skip spaces and tabs
+      while ((iter != parse_ctx.end()) && (*iter != L'}') && ((*iter == L' ') || (*iter == L'\t')))
+      {
+        iter++;
+      }
+      if ((iter != parse_ctx.end()) && (*iter != L'}'))
+      {
+        throw sqlite_wrapper::format_error("only an empty format-spec is supported");
+      }
+      return iter;
+    }
+
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static) non-static mandated by standard
+    auto format(std::source_location location, SQLITEWRAPPER_FORMAT_NAMESPACE::wformat_context& ctx) const
+    {
+      return SQLITEWRAPPER_FORMAT_NAMESPACE::format_to(ctx.out(), L"{}:{} '{}'", sqlite_wrapper::to_wstring(location.file_name()),
+        location.line(), sqlite_wrapper::to_wstring(location.function_name()));
     }
   };
 }
