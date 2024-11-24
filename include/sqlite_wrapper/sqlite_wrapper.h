@@ -15,7 +15,7 @@
 #include "sqlite_wrapper/config.h"
 #include "sqlite_wrapper/raii.h"
 #include "sqlite_wrapper/with_location.h"
-#include "sqlite_wrapper/error.h"
+#include "sqlite_wrapper/sqlite_error.h"
 #include "sqlite_wrapper/format.h"
 
 namespace sqlite_wrapper
@@ -187,7 +187,7 @@ namespace sqlite_wrapper
    * @param file_name name of the database file to open or create incl. an absolute or relative path
    * @param flags one of the value define in ::open_flags
    * @param loc caller location
-   * @return a the database handle in a RAII guard
+   * @returns a database handle in a RAII guard
    * @throws sqlite_error in case an invalid flag is used or SQLite returns an error or an invalid handle
    */
   [[nodiscard]] SQLITE_WRAPPER_EXPORT auto open(const std::string& file_name, open_flags flags, const std::source_location& loc = std::source_location::current()) -> database;

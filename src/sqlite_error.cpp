@@ -1,4 +1,4 @@
-#include "sqlite_wrapper/error.h"
+#include "sqlite_wrapper/sqlite_error.h"
 
 #include <string>
 
