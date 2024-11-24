@@ -181,6 +181,15 @@ namespace sqlite_wrapper
 
   enum class open_flags {open_or_create = 1, open_only};
 
+  /**
+   * Opens or creates a database file.
+   *
+   * @param file_name name of the database file to open or create incl. an absolute or relative path
+   * @param flags one of the value define in ::open_flags
+   * @param loc caller location
+   * @return a the database handle in a RAII guard
+   * @throws sqlite_error in case an invalid flag is used or SQLite returns an error or an invalid handle
+   */
   [[nodiscard]] SQLITE_WRAPPER_EXPORT auto open(const std::string& file_name, open_flags flags, const std::source_location& loc = std::source_location::current()) -> database;
 
   [[nodiscard]] inline auto open(const std::string& file_name, const std::source_location& loc = std::source_location::current()) -> database

@@ -1,18 +1,20 @@
 ---
-Checks: '*
-  -cert-err58-cpp
-  -altera-*
-  -android-*
-  -darwin-*  
-  -fuchsia-*
-  -google-*
-  -linuxkernel-*  
-  -llvm-*
-  -llvmlibc-*  
-  -mpi-*  
-  -objc-*  
-  -openmp-* 
-  -zircon-*'
+Checks: '*,
+  -altera-*,
+  -android-*,
+  -darwin-*,
+  -fuchsia-*,
+  -google-*,
+  -linuxkernel-*,  
+  -llvm-*,
+  -llvmlibc-*,  
+  -mpi-*,  
+  -objc-*,
+  -openmp-*, 
+  -zircon-*,
+  -cert-err58-cpp,
+  -misc-include-cleaner,
+  -performance-enum-size'
 CheckOptions:
   - key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
     value: 1

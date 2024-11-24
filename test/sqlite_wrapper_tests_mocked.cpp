@@ -328,8 +328,8 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_doub
 {
   const auto database{expect_and_get_database()};
 
-  constexpr auto double_value{double{1.23}};
-  constexpr auto float_value{float{4.56F}};
+  constexpr auto double_value{1.23};
+  constexpr auto float_value{4.56F};
   constexpr std::optional optional_double{9.87};
   constexpr std::optional optional_float{10.3F};
 

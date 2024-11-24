@@ -1,5 +1,7 @@
 #include "sqlite_wrapper/error.h"
 
+#include <string>
+
 #include <sqlite3.h>
 
 #include "sqlite_wrapper/format.h"
