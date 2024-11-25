@@ -3,7 +3,7 @@ find_package(Doxygen REQUIRED dot)
 include(FetchContent)
 
 # get doxygen-awesome-css from github
-cmake_policy(SET CMP0135 OLD)  # set file timestamps to extraction time
+cmake_policy(SET CMP0135 NEW)  # set file timestamps to extraction time
 FetchContent_Declare(doxygen-awesome-css
     URL https://github.com/jothepro/doxygen-awesome-css/archive/refs/heads/main.zip)
 FetchContent_MakeAvailable(doxygen-awesome-css)
