@@ -48,8 +48,7 @@ namespace SQLITEWRAPPER_FORMAT_NAMESPACE_NAME  // doxygen can't handle namespace
   // NOLINTNEXTLINE(cert-dcl58-cpp) modification of 'std' namespace can result in undefined behavior
   struct formatter<std::source_location>
   {
-    // NOLINTNEXTLINE(readability-convert-member-functions-to-static) non-static mandated by standard
-    constexpr auto parse(SQLITEWRAPPER_FORMAT_NAMESPACE::format_parse_context& parse_ctx)
+    static constexpr auto parse(SQLITEWRAPPER_FORMAT_NAMESPACE::format_parse_context& parse_ctx)
     {
       // NOLINTNEXTLINE(readability-qualified-auto) false positive!
       auto iter{parse_ctx.begin()};
@@ -66,7 +65,7 @@ namespace SQLITEWRAPPER_FORMAT_NAMESPACE_NAME  // doxygen can't handle namespace
     }
 
     template<typename FmtContext>
-    auto format(std::source_location location, FmtContext& ctx) const
+    static auto format(std::source_location location, FmtContext& ctx)
     {
       return SQLITEWRAPPER_FORMAT_NAMESPACE::format_to(ctx.out(), "{}:{} '{}'", location.file_name(), location.line(), location.function_name());
     }
