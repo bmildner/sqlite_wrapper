@@ -158,11 +158,7 @@ namespace sqlite_wrapper
 
     void get_column(const stmt_with_location& stmt, int index, optional_database_type auto& value)
     {
-      if (typename std::remove_reference_t<decltype(value)>::value_type base_value; get_column(stmt, index, base_value, true))
-      {
-        value = base_value;
-      }
-      else
+      if (!get_column(stmt, index, value.emplace(), true))
       {
         value.reset();
       }
