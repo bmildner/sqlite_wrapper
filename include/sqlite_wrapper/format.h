@@ -61,7 +61,7 @@ namespace SQLITEWRAPPER_FORMAT_NAMESPACE_NAME  // doxygen can't handle namespace
       }
       if ((iter != parse_ctx.end()) && (*iter != '}'))
       {
-        throw SQLITEWRAPPER_FORMAT_NAMESPACE::format_error("only an empty format-spec is supported");
+        throw sqlite_wrapper::format_error("only an empty format-spec is supported");
       }
       return iter;
     }

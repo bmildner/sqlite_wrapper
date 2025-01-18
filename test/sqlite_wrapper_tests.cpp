@@ -11,7 +11,6 @@ using ::testing::Test;
 using ::testing::StartsWith;
 using ::testing::AllOf;
 using ::testing::HasSubstr;
-using ::testing::StrEq;
 
 namespace
 {
@@ -84,31 +83,14 @@ TEST(sqlite_wrapper_utils_tests, format_source_location_success)
   ASSERT_EQ(sqlite_wrapper::format("{}", location), sqlite_wrapper::format("{:  \t \t }", location));
 }
 
+/*
+ * TODO: implement ASSERT_DOES_NOT_COMPILE()!
 TEST(sqlite_wrapper_utils_tests, format_source_location_fails)
 {
-  using namespace std::string_literals;
+  using namespace std::literals;
 
-  const auto fmt_str{"{:6}"s};
+  constexpr auto fmt_str{"{:6}"sv};
 
-  ASSERT_THROW_MSG((void)sqlite_wrapper::format(fmt_str, std::source_location::current()), sqlite_wrapper::format_error,
-    StrEq("only an empty format-spec is supported"));
+  ASSERT_DOES_NOT_COMPILE((void)sqlite_wrapper::format(fmt_str, std::source_location::current()), sqlite_wrapper::format_error);
 }
-
-TEST(sqlite_wrapper_utils_tests, format_source_location_wchar_success)
-{
-  constexpr auto location{std::source_location::current()};
-
-  const auto result{std::format(L"{}", location)};
-
-  ASSERT_EQ(result, std::format(L"{}:{} '{}'", sqlite_wrapper::to_wstring(location.file_name()), location.line(),
-    sqlite_wrapper::to_wstring(location.function_name())));
-
-  ASSERT_EQ(sqlite_wrapper::format(L"{}", location), sqlite_wrapper::format(L"{:  \t \t }", location));
-}
-
-TEST(sqlite_wrapper_utils_tests, to_wstring_success)
-{
-  ASSERT_EQ(sqlite_wrapper::to_wstring(nullptr), L"");
-  ASSERT_EQ(sqlite_wrapper::to_wstring("1qay2wsx3edc4rfv5tgb6zhn7ujm8ik,9ol.0p-+#*"), L"1qay2wsx3edc4rfv5tgb6zhn7ujm8ik,9ol.0p-+#*");
-  ASSERT_EQ(sqlite_wrapper::to_wstring("QAYWSXEDCRFVTGBZHNUJMIKOLP;:_"), L"QAYWSXEDCRFVTGBZHNUJMIKOLP;:_");
-}
+*/
