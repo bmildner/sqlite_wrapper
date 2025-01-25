@@ -16,6 +16,8 @@
 #  else
 #     error "Did not find <format> nor <fmt/format.h>!"
 #  endif
+#else
+#  error has_include is needed to detect presents of <format> header!
 #endif
 
 #ifdef DOXYGEN
