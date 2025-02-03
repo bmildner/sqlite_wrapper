@@ -29,15 +29,6 @@ namespace sqlite_wrapper
       : value(std::move(value)), location(loc)
     {}
 
-    with_location() = delete;
-    ~with_location() = default;
-
-    with_location(const with_location&) = default;
-    with_location(with_location&&) = default;
-
-    auto operator=(const with_location&) -> with_location& = default;
-    auto operator=(with_location&&) -> with_location& = default;
-
     value_type value;
     std::source_location location;
   };
