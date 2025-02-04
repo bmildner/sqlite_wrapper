@@ -17,7 +17,7 @@ namespace sqlite_wrapper
   namespace details
   {
     /**
-     * Custom deleter for database handles RAII-guard using std::unique_ptr.
+     * Custom deleter for database handle RAII-guards.
      */
     struct database_deleter
     {
@@ -25,7 +25,7 @@ namespace sqlite_wrapper
     };
 
     /**
-     * Custom deleter for prepared statement handles RAII-guard using std::unique_ptr.
+     * Custom deleter for prepared statement handle RAII-guards.
      */
     struct statement_deleter
     {
