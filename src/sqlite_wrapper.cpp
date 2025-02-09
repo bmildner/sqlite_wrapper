@@ -11,6 +11,7 @@
 
 #include "sqlite_wrapper/create_table.h"
 
+
 namespace sqlite_wrapper
 {
   namespace details
@@ -67,26 +68,29 @@ namespace sqlite_wrapper
       }
     }
 
-    auto check_null_and_column_type(const stmt_with_location& stmt, int index, int expected_type, bool maybe_null) -> bool
+    namespace
     {
-      const auto type{sqlite3_column_type(stmt.value, index)};
-
-      if (type == SQLITE_NULL)
+      auto check_null_and_column_type(const stmt_with_location& stmt, int index, int expected_type, bool maybe_null) -> bool
       {
-        if (maybe_null)
+        const auto type{sqlite3_column_type(stmt.value, index)};
+
+        if (type == SQLITE_NULL)
         {
-          return false;
+          if (maybe_null)
+          {
+            return false;
+          }
+
+          throw sqlite_error(sqlite_wrapper::format("column at index {} must not be NULL", index), stmt, SQLITE_MISMATCH);
         }
 
-        throw sqlite_error(sqlite_wrapper::format("column at index {} must not be NULL", index), stmt, SQLITE_MISMATCH);
-      }
+        if (type != expected_type)
+        {
+          throw sqlite_error(sqlite_wrapper::format("column at index {} has type {}, expected {}", index, type, expected_type), stmt, SQLITE_MISMATCH);
+        }
 
-      if (type != expected_type)
-      {
-        throw sqlite_error(sqlite_wrapper::format("column at index {} has type {}, expected {}", index, type, expected_type), stmt, SQLITE_MISMATCH);
+        return true;
       }
-
-      return true;
     }
 
     auto get_column(const stmt_with_location& stmt, int index, std::int64_t& value, bool maybe_null) -> bool
