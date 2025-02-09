@@ -2,7 +2,6 @@
 
 #include <gmock/gmock.h>
 
-#define SQLITE_API  // do not mark SQLite3 functions for export!
 #include <sqlite3.h>
 
 namespace sqlite_wrapper::mocks
