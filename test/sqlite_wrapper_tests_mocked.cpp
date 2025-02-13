@@ -239,6 +239,12 @@ namespace
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     return {reinterpret_cast<const std::byte*>(str.data()), str.size()};
   }
+
+  auto to_byte_span(std::string& str) -> std::span<std::byte>
+  {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    return {reinterpret_cast<std::byte*>(str.data()), str.size()};
+  }
 }  // unnamed namespace
 
 TEST_F(sqlite_wrapper_mocked_tests, open_success)
@@ -366,12 +372,15 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_blob
   const auto const_byte_span{to_const_byte_span("const byte span blob")};
   const std::optional optional_byte_vector{to_byte_vector("optional byte vector blob")};
   const std::optional optional_const_byte_span{to_const_byte_span("optional const byte span blob")};
+  std::string non_const_string{"non-const byte span"};
+  const std::span<std::byte> non_const_byte_span{to_byte_span(non_const_string)};
 
   expect_and_get_statement(database.get(),
                            {expect_blob_bind(byte_vector), expect_blob_bind({const_byte_span.begin(), const_byte_span.end()}),
                             expect_blob_bind(optional_byte_vector.value()),
-                            expect_blob_bind({optional_const_byte_span.value().begin(), optional_const_byte_span.value().end()})},
-                           byte_vector, const_byte_span, optional_byte_vector, optional_const_byte_span);
+                            expect_blob_bind({optional_const_byte_span.value().begin(), optional_const_byte_span.value().end()}),
+                            expect_blob_bind({non_const_byte_span.begin(), non_const_byte_span.end()})},
+                           byte_vector, const_byte_span, optional_byte_vector, optional_const_byte_span, non_const_byte_span);
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_range_binding_null_params_success)
@@ -393,9 +402,7 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_range_binding_null
     expected_binder.push_back(expect_null_bind());
   }
 
-  expect_and_get_statement(database.get(),
-                           expected_binder,
-                           vector_nullptr, array_nullopt);
+  expect_and_get_statement(database.get(), expected_binder, vector_nullptr, array_nullopt);
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_range_binding_int64_params_success)
