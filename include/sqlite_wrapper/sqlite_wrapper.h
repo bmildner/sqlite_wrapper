@@ -23,47 +23,82 @@ namespace sqlite_wrapper
   using byte_vector = std::vector<std::byte>;
   using const_byte_span = std::span<const std::byte>;
 
-
+  /**
+   * Basic types that con be queried from the database.
+   */
   template <typename T>
   concept basic_database_type = std::same_as<std::int64_t, T> || std::same_as<double, T> || std::same_as<std::string, T> || std::same_as<byte_vector, T>;
 
+  /**
+   * Optional versions of basic types that con be queried from the database.
+   */
   template <typename T>
   concept optional_database_type = std::same_as<T, std::optional<typename T::value_type>> && basic_database_type<typename T::value_type>;
 
+  /**
+   * Full set of basic and optional types that can be queried from the database.
+   */
   template <typename T>
   concept database_type = basic_database_type<T> || optional_database_type<T>;
 
-
-  // TODO: do we really have to exclude bool
-  // exclude double and float types to avoid conversion of them to int64!
+  /**
+   * Integral types that can be bound to a parameter in a database query.
+   */
   template <typename T>
-  concept integral_binding_type = std::convertible_to<T, std::int64_t> && !std::same_as<double, T> && !std::same_as<float, T>
-                                  && !std::same_as<bool, T> ;
+  concept integral_binding_type = std::integral<T> && std::convertible_to<T, std::int64_t>;
 
+  /**
+   * Floating point types that can be bound to a parameter in a database query.
+   */
   template <typename T>
-  concept real_binding_type = std::convertible_to<T, double>;
+  concept floation_point_binding_type = std::floating_point<T> && std::convertible_to<T, double>;
 
+  /**
+   * String like types that can be bound to a parameter in a database query.
+   */
   template <typename T>
   concept string_binding_type = std::constructible_from<std::string, T> || std::constructible_from<std::string_view, T>;
 
+  /**
+   * Byte vector or span like types that can be bound to a parameter in a database query.
+   */
   template <typename T>
   concept blob_binding_type = std::constructible_from<byte_vector, T> || std::constructible_from<const_byte_span, T>;
 
+  /**
+   * Null like types that can be bound to a parameter in a database query.
+   */
   template <typename T>
   concept null_binding_type = std::same_as<T, std::nullptr_t> || std::same_as<T, std::nullopt_t>;
 
+  /**
+   * Basic types that can be bound to a parameter in a database query.
+   */
   template <typename T>
-  concept basic_binding_type = integral_binding_type<T> || real_binding_type<T> || string_binding_type<T> || blob_binding_type<T> || null_binding_type<T>;
+  concept basic_binding_type = integral_binding_type<T> || floation_point_binding_type<T> || string_binding_type<T> || blob_binding_type<T> || null_binding_type<T>;
 
+  /**
+   * Optional basic types that can be bound to a parameter in a database query.
+   */
   template <typename T>
   concept optional_binding_type = std::same_as<T, std::optional<typename T::value_type>> && basic_binding_type<typename T::value_type>;
 
+  /**
+   * Binding types that contain a single value (column) that can be bound to a parameter in a database query.
+   */
   template <typename T>
-  concept single_binding_type = basic_binding_type<T> || null_binding_type<T> || optional_binding_type<T>;
+  concept single_binding_type = basic_binding_type<T> || optional_binding_type<T>;
 
+  /**
+   * Ranges of binding types that contain a multiple values (column) that can be bound to a parameter in a database query.
+   * Ranges that aee also a valid basic_binding_type are excluded!
+   */
   template <typename T>
   concept multi_binding_type = std::ranges::range<T> && single_binding_type<typename std::ranges::range_value_t<T>> && !basic_binding_type<T>;
 
+  /**
+   * Full set of types that can be bound to a parameter in a database query.
+   */
   template <typename T>
   concept binding_type = single_binding_type<T> || multi_binding_type<T>;
 
@@ -87,14 +122,16 @@ namespace sqlite_wrapper
     return (has_tuple_element<T, N> && ...);
   } (std::make_index_sequence<std::tuple_size_v<T>>());
 
-
-  template<typename T, std::size_t N>
-  concept has_database_type_tuple_element = database_type<typename std::tuple_element_t<N, T>>;
+  namespace details
+  {
+    template<typename T, std::size_t N>
+    concept has_database_type_tuple_element = database_type<typename std::tuple_element_t<N, T>>;
+  }
 
   template <typename T>
   concept row_type = tuple_like<T> && []<std::size_t... N>(std::index_sequence<N...>)
   {
-    return (has_database_type_tuple_element<T, N> && ...);
+    return (details::has_database_type_tuple_element<T, N> && ...);
   } (std::make_index_sequence<std::tuple_size_v<T>>());
 
   namespace details
@@ -172,7 +209,6 @@ namespace sqlite_wrapper
 
       (get_column(stmt, index++, columns), ...);
     }
-
   }  // namespace details
 
   enum class open_flags {open_or_create = 1, open_only};
