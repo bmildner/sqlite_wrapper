@@ -17,7 +17,9 @@ target_include_directories(sqlite_wrapper PUBLIC "../include")
 # enable automatic export and import of symbols
 target_compile_definitions(sqlite_wrapper PUBLIC SQLITE_WRAPPER_SHARED)
 
-target_link_libraries(sqlite_wrapper PRIVATE common_target_settings unofficial::sqlite3::sqlite3)
+target_link_libraries(sqlite_wrapper PRIVATE
+    common_target_settings
+    unofficial::sqlite3::sqlite3)
 
 # -------
 

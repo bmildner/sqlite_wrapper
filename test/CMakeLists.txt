@@ -1,3 +1,5 @@
+add_subdirectory(stub_generator)
+
 enable_testing()
 
 add_subdirectory(mocks)
