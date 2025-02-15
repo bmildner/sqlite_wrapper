@@ -2,6 +2,7 @@
   "dependencies": [
     "fmt",
     "gtest",
-    "sqlite3"
+    "sqlite3",
+    "curl"
   ]
 }
