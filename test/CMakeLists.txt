@@ -2,8 +2,7 @@ enable_testing()
 
 add_subdirectory(mocks)
 
-set(COMMON_SRCS "test_runner.cpp" 
-                "assert_throw_msg.h")
+set(COMMON_SRCS "test_runner.cpp")
 
 add_executable(test_runner ${COMMON_SRCS} "sqlite_wrapper_tests.cpp")
 
