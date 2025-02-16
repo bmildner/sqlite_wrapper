@@ -17,7 +17,7 @@ namespace sqlite_wrapper
   namespace details
   {
     /**
-     * Custom deleter for database handle RAII-guards.
+     * Custom deleter for database handle RAII-guard.
      */
     struct database_deleter
     {
@@ -25,7 +25,7 @@ namespace sqlite_wrapper
     };
 
     /**
-     * Custom deleter for prepared statement handle RAII-guards.
+     * Custom deleter for prepared statement handle RAII-guard.
      */
     struct statement_deleter
     {

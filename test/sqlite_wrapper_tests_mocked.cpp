@@ -9,7 +9,6 @@
 
 #include <gtest/gtest.h>
 
-#include "assert_throw_msg.h"
 #include "free_function_mock.h"
 #include "sqlite_mock.h"
 #include "sqlite_wrapper/format.h"
@@ -266,20 +265,22 @@ TEST_F(sqlite_wrapper_mocked_tests, open_fails)
   EXPECT_CALL(*get_mock(), sqlite3_errstr(SQLITE_INTERNAL)).WillOnce(Return("SQLITE_INTERNAL"));
   EXPECT_CALL(*get_mock(), sqlite3_errstr(SQLITE_ERROR)).Times(2).WillRepeatedly(Return("SQLITE_ERROR"));
 
-  ASSERT_THROW_MSG((void)sqlite_wrapper::open(db_file_name), sqlite_wrapper::sqlite_error,
-                   AllOf(StartsWith(sqlite_wrapper::format("sqlite3_open() failed to open database \"{}\"", db_file_name)),
-                         HasSubstr("SQLITE_INTERNAL")));
+  ASSERT_THAT([] { (void)sqlite_wrapper::open(db_file_name); },
+              testing::ThrowsMessage<sqlite_wrapper::sqlite_error>(
+                  AllOf(StartsWith(sqlite_wrapper::format("sqlite3_open() failed to open database \"{}\"", db_file_name)),
+                        HasSubstr("SQLITE_INTERNAL"))));
 
-  ASSERT_THROW_MSG((void)sqlite_wrapper::open(db_file_name), sqlite_wrapper::sqlite_error,
-                   AllOf(StartsWith(sqlite_wrapper::format("sqlite3_open() returned nullptr for database \"{}\"", db_file_name)),
-                         HasSubstr("SQLITE_ERROR")));
+  ASSERT_THAT([] { (void)sqlite_wrapper::open(db_file_name); },
+              testing::ThrowsMessage<sqlite_wrapper::sqlite_error>(
+                  AllOf(StartsWith(sqlite_wrapper::format("sqlite3_open() returned nullptr for database \"{}\"", db_file_name)),
+                        HasSubstr("SQLITE_ERROR"))));
 
-  // NOLINTNEXTLINE(hicpp-signed-bitwise)
   const sqlite_wrapper::open_flags bad_open_flags{to_underlying(sqlite_wrapper::open_flags::open_only) |
                                                   to_underlying(sqlite_wrapper::open_flags::open_or_create)};
 
-  ASSERT_THROW_MSG((void)sqlite_wrapper::open(db_file_name, bad_open_flags), sqlite_wrapper::sqlite_error,
-                   StartsWith(sqlite_wrapper::format("invalid open_flags value  \"{}\"", to_underlying(bad_open_flags))));
+  ASSERT_THAT([] { (void)sqlite_wrapper::open(db_file_name, bad_open_flags); },
+              testing::ThrowsMessage<sqlite_wrapper::sqlite_error>(
+                  StartsWith(sqlite_wrapper::format("invalid open_flags value  \"{}\"", to_underlying(bad_open_flags)))));
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_no_param_success)

@@ -5,12 +5,12 @@
 
 #include "sqlite_wrapper/sqlite_wrapper.h"
 #include "sqlite_wrapper/format.h"
-#include "assert_throw_msg.h"
 
 using ::testing::Test;
 using ::testing::StartsWith;
 using ::testing::AllOf;
 using ::testing::HasSubstr;
+using ::testing::ThrowsMessage;
 
 namespace
 {
@@ -64,11 +64,15 @@ TEST_F(sqlite_wrapper_tests, open)
 
 TEST_F(sqlite_wrapper_tests, open_failes)
 {
-  constexpr auto location{std::source_location::current()};
+  std::source_location location{};
 
-  ASSERT_THROW_MSG((void) sqlite_wrapper::open(temp_db_file_name.string(), sqlite_wrapper::open_flags::open_only), sqlite_wrapper::sqlite_error,
-    AllOf(StartsWith("sqlite3_open() failed to open database"), HasSubstr("failed with: unable to open database file"),
-      HasSubstr(temp_db_file_name.string()), HasSubstr(location.file_name()), HasSubstr(location.function_name())));
+  ASSERT_THAT([&]
+  {
+    location = std::source_location::current();
+    (void) sqlite_wrapper::open(temp_db_file_name.string(), sqlite_wrapper::open_flags::open_only);
+  },
+  ThrowsMessage<sqlite_wrapper::sqlite_error>(AllOf(StartsWith("sqlite3_open() failed to open database"), HasSubstr("failed with: unable to open database file"),
+    HasSubstr(temp_db_file_name.string()), HasSubstr(location.file_name()), HasSubstr(location.function_name()))));
 }
 
 // TODO: maybe move to separate file
