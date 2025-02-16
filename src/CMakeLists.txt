@@ -28,5 +28,7 @@ target_link_libraries(sqlite_wrapper_static PRIVATE common_target_settings)
 
 target_include_directories(sqlite_wrapper_static PRIVATE ${SQLITE3_INCLUDES})
 
-# this might prevent dynamic linking to SQLite on Windows due to name prefix of DLLImport symbols ...
-target_compile_definitions(sqlite_wrapper_static PRIVATE SQLITE_API=)
+if (DEFINED MSVC)
+  # this might prevent dynamic linking to SQLite on Windows due to name prefix of DLLImport symbols ...
+  target_compile_definitions(sqlite_wrapper_static PRIVATE SQLITE_API=)
+endif ()
