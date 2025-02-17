@@ -102,34 +102,39 @@ namespace sqlite_wrapper
   template <typename T>
   concept binding_type = single_binding_type<T> || multi_binding_type<T>;
 
-
-  // see https://stackoverflow.com/questions/68443804/c20-concept-to-check-tuple-like-types
-  template<typename T, std::size_t N>
-  concept has_tuple_element = requires(T tuple)
-  {
-    typename std::tuple_element_t<N, std::remove_const_t<T>>;
-    { get<N>(tuple) } -> std::convertible_to<const std::tuple_element_t<N, T>&>;
-  };
-
-  template<typename T>
-  concept tuple_like = !std::is_reference_v<T> && requires
-  {
-    typename std::tuple_size<T>::type;
-    requires std::derived_from<std::tuple_size<T>, std::integral_constant<std::size_t, std::tuple_size_v<T>>>;
-  }
-  && []<std::size_t... N>(std::index_sequence<N...>)
-  {
-    return (has_tuple_element<T, N> && ...);
-  } (std::make_index_sequence<std::tuple_size_v<T>>());
-
   namespace details
   {
+    /**
+     * Check that a given type T is a tuple element type at a given index N.
+     */
+    // see https://stackoverflow.com/questions/68443804/c20-concept-to-check-tuple-like-types
+    template<typename T, std::size_t N>
+    concept has_tuple_element = requires(T tuple)
+    {
+      typename std::tuple_element_t<N, std::remove_const_t<T>>;
+      { get<N>(tuple) } -> std::convertible_to<const std::tuple_element_t<N, T>&>;
+    };
+
+    /**
+     * Checks that a given type is a "tuple_like" type.
+     */
+    template<typename T>
+    concept tuple_like = !std::is_reference_v<T> && requires
+    {
+      typename std::tuple_size<T>::type;
+      requires std::derived_from<std::tuple_size<T>, std::integral_constant<std::size_t, std::tuple_size_v<T>>>;
+    }
+    && []<std::size_t... N>(std::index_sequence<N...>)
+    {
+      return (has_tuple_element<T, N> && ...);
+    } (std::make_index_sequence<std::tuple_size_v<T>>());
+
     template<typename T, std::size_t N>
     concept has_database_type_tuple_element = database_type<typename std::tuple_element_t<N, T>>;
   }
 
   template <typename T>
-  concept row_type = tuple_like<T> && []<std::size_t... N>(std::index_sequence<N...>)
+  concept row_type = details::tuple_like<T> && []<std::size_t... N>(std::index_sequence<N...>)
   {
     return (details::has_database_type_tuple_element<T, N> && ...);
   } (std::make_index_sequence<std::tuple_size_v<T>>());
