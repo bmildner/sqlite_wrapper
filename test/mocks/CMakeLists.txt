@@ -7,3 +7,7 @@ target_include_directories(sqlite_mock PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(sqlite_mock PRIVATE "../../include")
 
 target_include_directories(sqlite_mock INTERFACE ${SQLITE3_INCLUDES})
+
+if (DEFINED MSVC)
+  target_compile_definitions(sqlite_mock PUBLIC SQLITE_API=)
+endif ()

@@ -216,7 +216,7 @@ namespace sqlite_wrapper
     }
   }  // namespace details
 
-  enum class open_flags {open_or_create = 1, open_only};
+  enum class open_flags : unsigned {open_or_create = 1, open_only};
 
   /**
    * Opens or creates a database file.
