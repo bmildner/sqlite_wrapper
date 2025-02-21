@@ -15,7 +15,7 @@ namespace sqlite_wrapper
         throw sqlite_error(sqlite_wrapper::format("failed to create prepared statement \"{}\"", sql), database, result);
       }
 
-      return statement{ stmt };
+      return statement{stmt};
     }
 
     void bind_value(const stmt_with_location& stmt, int index)
@@ -60,6 +60,17 @@ namespace sqlite_wrapper
 
     namespace
     {
+      /**
+       * Checks a column in a "ready to be returned row", in a prepared statement, to have the expected type.
+       *
+       * @param stmt statement
+       * @param index index of column to check (0 based)
+       * @param expected_type expected column type
+       * @param maybe_null indicates if NULL is allowed.
+       *
+       * @throws sqlite_error exception if expected_type does not match the actual columns type.
+       * @returns true if the type matches, false if, and only if, it is NULL AND maybe_null is true.
+       */
       auto check_null_and_column_type(const stmt_with_location& stmt, int index, int expected_type, bool maybe_null) -> bool
       {
         const auto type{sqlite3_column_type(stmt.value, index)};
