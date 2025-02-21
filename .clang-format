@@ -6,14 +6,18 @@ ColumnLimit: 130
 AlignConsecutiveMacros: false
 AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
-AllowShortBlocksOnASingleLine: "Empty"
+AllowShortBlocksOnASingleLine: Empty
 AllowShortCaseLabelsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: Empty
-AllowShortIfStatementsOnASingleLine: "Never"
+AllowShortIfStatementsOnASingleLine: Never
 AllowShortLoopsOnASingleLine: false
-AllowShortLambdasOnASingleLine: "All"
-BreakBeforeBraces: "Allman"
-IncludeBlocks: Regroup
+AllowShortLambdasOnASingleLine: All
+BreakBeforeBraces: Allman
+BraceWrapping:
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+IncludeBlocks: Preserve
+SortIncludes: CaseInsensitive
 IncludeCategories:
   - Regex: '^<[^\.]*>'
     Priority: 1000
@@ -23,8 +27,8 @@ IncludeCategories:
     Priority: 2000
   - Regex: '^\"'
     Priority: 3000
-IndentPPDirectives: "AfterHash"
+IndentPPDirectives: AfterHash
 DerivePointerAlignment: false
 PointerAlignment: Left
-NamespaceIndentation: "All"
+NamespaceIndentation: All
 AllowShortCompoundRequirementOnASingleLine: true

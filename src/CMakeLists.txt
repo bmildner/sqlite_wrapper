@@ -7,6 +7,7 @@
         "../include/sqlite_wrapper/format.h" 
         "../include/sqlite_wrapper/with_location.h"
         "../include/sqlite_wrapper/create_table.h"
+        "create_table.cpp"
         "../include/sqlite_wrapper/config.h")
 
 add_library(sqlite_wrapper SHARED ${SRC})

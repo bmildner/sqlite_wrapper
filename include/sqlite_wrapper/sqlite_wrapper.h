@@ -1,22 +1,22 @@
 ﻿#pragma once
 
-#include <tuple>
-#include <string>
-#include <concepts>
-#include <cstdint>
-#include <vector>
-#include <cstddef>
-#include <optional>
 #include <algorithm>
-#include <span>
+#include <concepts>
+#include <cstddef>
+#include <cstdint>
 #include <limits>
+#include <optional>
 #include <ranges>
+#include <span>
+#include <string>
+#include <tuple>
+#include <vector>
 
 #include "sqlite_wrapper/config.h"
-#include "sqlite_wrapper/raii.h"
-#include "sqlite_wrapper/with_location.h"
-#include "sqlite_wrapper/sqlite_error.h"
 #include "sqlite_wrapper/format.h"
+#include "sqlite_wrapper/raii.h"
+#include "sqlite_wrapper/sqlite_error.h"
+#include "sqlite_wrapper/with_location.h"
 
 namespace sqlite_wrapper
 {
@@ -182,7 +182,7 @@ namespace sqlite_wrapper
 
     void bind_value_and_increment_index(const stmt_with_location& stmt, int& index, const single_binding_type auto& param)
     {
-      // TODO: not sure what array decay clang-tidy is complaining about here !?
+      // TODO: not sure what array decay clang-tidy is complaining about here, maybe string !?
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay,hicpp-no-array-decay)
       bind_value(stmt, index, param);
       index++;

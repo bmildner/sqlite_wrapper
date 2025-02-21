@@ -1,8 +1,8 @@
 #pragma once
 
+#include <source_location>
 #include <type_traits>
 #include <utility>
-#include <source_location>
 
 #ifdef __has_include
 #  if __has_include(<format>)
