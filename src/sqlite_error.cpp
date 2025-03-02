@@ -1,5 +1,6 @@
 #include "sqlite_wrapper/sqlite_error.h"
 
+#include <cassert>
 #include <string>
 
 #include <sqlite3.h>
@@ -36,6 +37,7 @@ namespace sqlite_wrapper
 
     auto error_to_string(sqlite3_stmt* stmt, int error) -> std::string
     {
+      assert(stmt != nullptr);
       const auto* sql_str{::sqlite3_sql(stmt)};
 
       return sqlite_wrapper::format("{} for SQL \"{}\"", error_to_string(::sqlite3_db_handle(stmt), error),
@@ -47,15 +49,13 @@ namespace sqlite_wrapper
       : std::runtime_error(
             sqlite_wrapper::format("{}, failed with: {} in {}", what, error_to_string(database.value, error), database.location)),
         m_location(database.location)
-  {
-  }
+  {}
 
   sqlite_error::sqlite_error(std::string_view what, const stmt_with_location& stmt, int error)
       : std::runtime_error(
             sqlite_wrapper::format("{}, failed with: {} in {}", what, error_to_string(stmt.value, error), stmt.location)),
         m_location(stmt.location)
-  {
-  }
+  {}
 
   auto sqlite_error::where() const -> const std::source_location&
   {

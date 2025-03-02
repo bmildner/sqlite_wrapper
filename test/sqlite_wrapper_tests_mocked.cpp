@@ -280,7 +280,7 @@ TEST_F(sqlite_wrapper_mocked_tests, open_fails)
 
   ASSERT_THAT([] { (void)sqlite_wrapper::open(db_file_name, bad_open_flags); },
               testing::ThrowsMessage<sqlite_wrapper::sqlite_error>(
-                  StartsWith(sqlite_wrapper::format("invalid open_flags value  \"{}\"", to_underlying(bad_open_flags)))));
+                  StartsWith(sqlite_wrapper::format("invalid open_flags value \"{}\"", bad_open_flags))));
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_no_param_success)

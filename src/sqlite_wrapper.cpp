@@ -1,5 +1,7 @@
 ﻿#include "sqlite_wrapper/sqlite_wrapper.h"
 
+#include <cassert>
+
 #include <sqlite3.h>
 
 namespace sqlite_wrapper
@@ -12,6 +14,7 @@ namespace sqlite_wrapper
 
       if (const auto result{ ::sqlite3_prepare_v2(database.value, sql.data(), static_cast<int>(sql.size()), &stmt, nullptr) }; (result != SQLITE_OK) || (stmt == nullptr))
       {
+        assert(stmt == nullptr);
         throw sqlite_error(sqlite_wrapper::format("failed to create prepared statement \"{}\"", sql), database, result);
       }
 
@@ -180,7 +183,7 @@ namespace sqlite_wrapper
         sqlite_flags = SQLITE_OPEN_READWRITE;
         break;
       default:
-        throw sqlite_error(sqlite_wrapper::format("invalid open_flags value  \"{}\"", to_underlying(flags)), SQLITE_ERROR, loc);
+        throw sqlite_error(sqlite_wrapper::format("invalid open_flags value \"{}\"", flags), SQLITE_ERROR, loc);
     }
 
     if (const auto result{::sqlite3_open_v2(file_name.c_str(), &raw_db_handle, sqlite_flags, nullptr)}; result != SQLITE_OK)

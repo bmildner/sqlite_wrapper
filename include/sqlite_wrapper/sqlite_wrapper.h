@@ -9,6 +9,7 @@
 #include <ranges>
 #include <span>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <vector>
 
@@ -216,7 +217,14 @@ namespace sqlite_wrapper
     }
   }  // namespace details
 
-  enum class open_flags : unsigned {open_or_create = 1, open_only};
+  /**
+   * Controls if a database file may be created when trying to open it
+   */
+  enum class open_flags : unsigned
+  {
+    open_or_create = 1, ///< Open or create database file
+    open_only           ///< Only open already existing database file
+  };
 
   /**
    * Opens or creates a database file.
@@ -229,6 +237,14 @@ namespace sqlite_wrapper
    */
   [[nodiscard]] SQLITE_WRAPPER_EXPORT auto open(const std::string& file_name, open_flags flags, const std::source_location& loc = std::source_location::current()) -> database;
 
+  /**
+   * Opens or creates a database file.
+   *
+   * @param file_name name of the database file to open or create incl. an absolute or relative path
+   * @param loc caller location
+   * @returns a database handle in a RAII guard
+   * @throws sqlite_error in case SQLite returns an error or an invalid handle
+   */
   [[nodiscard]] inline auto open(const std::string& file_name, const std::source_location& loc = std::source_location::current()) -> database
   {
     return open(file_name, open_flags::open_or_create, loc);
@@ -312,3 +328,31 @@ namespace sqlite_wrapper
   }
 
 }  // namespace sqlite_wrapper
+
+namespace SQLITEWRAPPER_FORMAT_NAMESPACE_NAME
+{
+  template<>
+  // NOLINTNEXTLINE(cert-dcl58-cpp) modification of 'std' namespace can result in undefined behavior
+  struct formatter<sqlite_wrapper::open_flags> : sqlite_wrapper::empty_format_spec
+  {
+    template<typename FmtContext>
+    static auto format(sqlite_wrapper::open_flags flags, FmtContext& ctx)
+    {
+      using namespace std::string_view_literals;
+      std::string_view flagStr{};
+
+      switch (flags)
+      {
+        case sqlite_wrapper::open_flags::open_or_create:
+          flagStr = "open_or_create"sv;
+        break;
+        case sqlite_wrapper::open_flags::open_only:
+          flagStr = "open_only"sv;
+        break;
+        default:
+          return SQLITEWRAPPER_FORMAT_NAMESPACE::format_to(ctx.out(), "<unknown ({})>", sqlite_wrapper::to_underlying(flags));
+      }
+      return SQLITEWRAPPER_FORMAT_NAMESPACE::format_to(ctx.out(), "{}", flagStr);
+    }
+  };
+}

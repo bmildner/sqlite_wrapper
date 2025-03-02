@@ -44,13 +44,8 @@ namespace sqlite_wrapper
     return static_cast<std::underlying_type_t<Enum>>(value);
   }
 #endif
-}
 
-namespace SQLITEWRAPPER_FORMAT_NAMESPACE_NAME  // doxygen can't handle namespace qualified class names ...
-{
-  template<>
-  // NOLINTNEXTLINE(cert-dcl58-cpp) modification of 'std' namespace can result in undefined behavior
-  struct formatter<std::source_location>
+  struct empty_format_spec
   {
     static constexpr auto parse(SQLITEWRAPPER_FORMAT_NAMESPACE::format_parse_context& parse_ctx)
     {
@@ -67,7 +62,15 @@ namespace SQLITEWRAPPER_FORMAT_NAMESPACE_NAME  // doxygen can't handle namespace
       }
       return iter;
     }
+  };
+}
 
+namespace SQLITEWRAPPER_FORMAT_NAMESPACE_NAME
+{
+  template<>
+  // NOLINTNEXTLINE(cert-dcl58-cpp) modification of 'std' namespace can result in undefined behavior
+  struct formatter<std::source_location> : sqlite_wrapper::empty_format_spec
+  {
     template<typename FmtContext>
     static auto format(std::source_location location, FmtContext& ctx)
     {
@@ -75,6 +78,3 @@ namespace SQLITEWRAPPER_FORMAT_NAMESPACE_NAME  // doxygen can't handle namespace
     }
   };
 }
-
-#undef SQLITEWRAPPER_FORMAT_NAMESPACE_NAME
-#undef SQLITEWRAPPER_FORMAT_NAMESPACE

@@ -4,6 +4,8 @@
 #include <filesystem>
 #include <iostream>
 
+#include "sqlite_wrapper/format.h"
+
 // TODO: remove or turn into unit-tests
 // NOLINTBEGIN
 
