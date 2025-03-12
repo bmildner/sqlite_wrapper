@@ -13,6 +13,7 @@
 #    include <fmt/format.h>
 #    define SQLITEWRAPPER_FORMAT_NAMESPACE_NAME fmt
 #    define SQLITEWRAPPER_FORMAT_NAMESPACE ::fmt
+#    define SQLITEWRAPPER_FORMAT_USE_FMT
 #  else
 #     error "Did not find <format> nor <fmt/format.h>!"
 #  endif
