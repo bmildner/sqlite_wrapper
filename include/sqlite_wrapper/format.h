@@ -11,11 +11,12 @@
 #    define SQLITEWRAPPER_FORMAT_NAMESPACE ::std
 #  elif __has_include(<fmt/format.h>)
 #    include <fmt/format.h>
+#    include <fmt/std.h>
 #    define SQLITEWRAPPER_FORMAT_NAMESPACE_NAME fmt
 #    define SQLITEWRAPPER_FORMAT_NAMESPACE ::fmt
 #    define SQLITEWRAPPER_FORMAT_USE_FMT
 #  else
-#     error "Did not find <format> nor <fmt/format.h>!"
+#    error "Did not find <format> nor <fmt/format.h>!"
 #  endif
 #else
 #  error has_include is needed to detect presents of <format> header!
@@ -28,7 +29,7 @@
 
 namespace sqlite_wrapper
 {
-  template<typename... Args>
+  template <typename... Args>
   [[nodiscard]] auto format(SQLITEWRAPPER_FORMAT_NAMESPACE::format_string<Args...> fmt, Args&&... args) -> std::string
   {
     return SQLITEWRAPPER_FORMAT_NAMESPACE::format(fmt, std::forward<Args>(args)...);
@@ -53,29 +54,32 @@ namespace sqlite_wrapper
       // NOLINTNEXTLINE(readability-qualified-auto) false positive!
       auto iter{parse_ctx.begin()};
       // skip spaces and tabs
-      while ((iter != parse_ctx.end()) && (*iter != '}') && ((*iter == ' ') || (*iter == '\t')))
+      while ((iter != parse_ctx.end()) && (*iter != '}'))
       {
         iter++;
       }
       if ((iter != parse_ctx.end()) && (*iter != '}'))
       {
-        throw sqlite_wrapper::format_error("only an empty format-spec is supported");
+        throw sqlite_wrapper::format_error("unknown format specifier");
       }
       return iter;
     }
   };
-}
+}  // namespace sqlite_wrapper
 
+#ifndef SQLITEWRAPPER_FORMAT_USE_FMT
 namespace SQLITEWRAPPER_FORMAT_NAMESPACE_NAME
 {
-  template<>
+  template <>
   // NOLINTNEXTLINE(cert-dcl58-cpp) modification of 'std' namespace can result in undefined behavior
   struct formatter<std::source_location> : sqlite_wrapper::empty_format_spec
   {
-    template<typename FmtContext>
+    template <typename FmtContext>
     static auto format(std::source_location location, FmtContext& ctx)
     {
-      return SQLITEWRAPPER_FORMAT_NAMESPACE::format_to(ctx.out(), "{}:{} '{}'", location.file_name(), location.line(), location.function_name());
+      return SQLITEWRAPPER_FORMAT_NAMESPACE::format_to(ctx.out(), "{}:{}:{}: {}", location.file_name(), location.line(),
+                                                       location.column(), location.function_name());
     }
   };
-}
+}  // namespace SQLITEWRAPPER_FORMAT_NAMESPACE_NAME
+#endif

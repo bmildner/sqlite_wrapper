@@ -84,9 +84,9 @@ TEST(sqlite_wrapper_utils_tests, format_source_location_success)
 
   const auto result{sqlite_wrapper::format("{}", location)};
 
-  ASSERT_EQ(result, sqlite_wrapper::format("{}:{} '{}'", location.file_name(), location.line(), location.function_name()));
+  ASSERT_EQ(result, sqlite_wrapper::format("{}:{}:{}: {}", location.file_name(), location.line(), location.column(), location.function_name()));
 
-  ASSERT_EQ(sqlite_wrapper::format("{}", location), sqlite_wrapper::format("{:  \t \t }", location));
+  ASSERT_EQ(sqlite_wrapper::format("{}", location), sqlite_wrapper::format("{:}", location));
 }
 
 // TODO: maybe move to separate file
@@ -94,7 +94,7 @@ TEST(sqlite_wrapper_utils_tests, format_source_location_success)
 TEST(sqlite_wrapper_utils_tests, format_source_location_fails)
 {
   ASSERT_THAT([&]() { (void)sqlite_wrapper::format(fmt::runtime("{:6}"), std::source_location::current()); },
-              ThrowsMessage<sqlite_wrapper::format_error>(HasSubstr("only an empty format-spec is supported")));
+              ThrowsMessage<sqlite_wrapper::format_error>(HasSubstr("unknown format specifier")));
 }
 #endif
 
