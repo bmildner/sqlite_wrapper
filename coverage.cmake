@@ -28,3 +28,6 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_dependencies(coverage_report run_all_tests)
     endif()
 endif()
+
+# avoid warning about unused GCOV variable
+set(ignoreMe "${GCOV}")
