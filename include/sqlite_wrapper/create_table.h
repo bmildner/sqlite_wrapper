@@ -3,7 +3,7 @@
 #include "sqlite_wrapper.h"
 
 // TODO: cleanup or remove all togther!
-// NOLINTBEGIN
+// NOLINTBEGIN GCOVR_EXCL_START
 namespace sqlite_wrapper
 {
   template<typename... Args>
@@ -110,4 +110,4 @@ namespace sqlite_wrapper
   };
 
 }  // namespace sqlite_wrapper
-// NOLINTEND
+// NOLINTEND GCOVR_EXCL_STOP

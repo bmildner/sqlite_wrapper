@@ -76,6 +76,17 @@
             }
         },
         {
+            "name": "linux-base-newest-toolset",
+            "hidden": true,
+            "inherits": "linux-base",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "gcc-14",
+                "CMAKE_CXX_COMPILER": "g++-14",
+                "CLANG_TIDY": "clang-tidy-19",
+                "GCOV": "gcov-14"
+            }
+        },
+        {
             "name": "linux-debug",
             "displayName": "Linux Debug",
             "inherits": "linux-base",
@@ -84,9 +95,25 @@
             }
         },
         {
+            "name": "linux-debug-newest-toolset",
+            "displayName": "Linux Debug newest toolset",
+            "inherits": "linux-base-newest-toolset",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
             "name": "linux-release",
             "displayName": "Linux Release",
             "inherits": "linux-base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "linux-release-newest-toolset",
+            "displayName": "Linux Release newest toolset",
+            "inherits": "linux-base-newest-toolset",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
             }

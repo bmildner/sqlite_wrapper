@@ -8,7 +8,9 @@ if ((ENABLE_STATIC_ANALYSIS) AND (NOT DEFINED MSVC))
   if (DEFINED ENV{CLANG_TIDY})
     set(CLANG_TIDY $ENV{CLANG_TIDY})
   else()
-    find_program(CLANG_TIDY NAMES clang-tidy clang-tidy-* REQUIRED)
+    if (NOT CLANG_TIDY)
+      find_program(CLANG_TIDY NAMES clang-tidy REQUIRED)
+    endif ()
   endif()
 
   # enable clang-tidy

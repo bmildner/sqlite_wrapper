@@ -7,7 +7,7 @@
 #include "sqlite_wrapper/format.h"
 
 // TODO: remove or turn into unit-tests
-// NOLINTBEGIN
+// NOLINTBEGIN GCOVR_EXCL_START
 
 auto to_byte_vector(const std::string_view& str) -> sqlite_wrapper::byte_vector
 {
@@ -80,4 +80,4 @@ int XXXmain()
 
   return 0;
 }
-// NOLINTEND
+// NOLINTEND GCOVR_EXCL_STOP
