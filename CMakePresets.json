@@ -64,8 +64,8 @@
             "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
             "hidden": true,
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
-            "installDir": "${sourceDir}/out/install/${presetName}",
+            "binaryDir": "${sourceDir}/../bindir/sqlite_wrapper/build/${presetName}",
+            "installDir": "${sourceDir}/../bindir/sqlite_wrapper/install/${presetName}",
             "cacheVariables": {
                 "CMAKE_VERBOSE_MAKEFILE": "On"
             },
