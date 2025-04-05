@@ -20,8 +20,8 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     endif ()
 
     add_custom_target(coverage_report
-            COMMAND ${GCOVR} --gcov-executable ${GCOV} -r ${CMAKE_CURRENT_SOURCE_DIR} -e ../vcpkg_installed/ -e ${CMAKE_CURRENT_SOURCE_DIR}/test --sort=uncovered-percent --txt-metric=branch --exclude-unreachable-branches --exclude-throw-branches
-            COMMAND ${GCOVR} --gcov-executable ${GCOV} -r ${CMAKE_CURRENT_SOURCE_DIR} -e ../vcpkg_installed/ -e ${CMAKE_CURRENT_SOURCE_DIR}/test --sort=uncovered-percent --txt-metric=line --exclude-function-lines --exclude-noncode-lines
+            COMMAND ${GCOVR} --gcov-executable ${GCOV} -r ${CMAKE_CURRENT_SOURCE_DIR} -e ${CMAKE_CURRENT_SOURCE_DIR}/test --sort=uncovered-percent --txt-metric=branch --exclude-unreachable-branches --exclude-throw-branches ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/..
+            COMMAND ${GCOVR} --gcov-executable ${GCOV} -r ${CMAKE_CURRENT_SOURCE_DIR} -e ${CMAKE_CURRENT_SOURCE_DIR}/test --sort=uncovered-percent --txt-metric=line --exclude-function-lines --exclude-noncode-lines ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/..
             WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
             USES_TERMINAL)
 
