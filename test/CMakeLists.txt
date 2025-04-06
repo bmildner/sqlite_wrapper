@@ -4,7 +4,7 @@ add_subdirectory(mocks)
 
 set(COMMON_SRCS "test_runner.cpp")
 
-add_executable(test_runner ${COMMON_SRCS} "sqlite_wrapper_tests.cpp")
+add_executable(test_runner ${COMMON_SRCS} "sqlite_wrapper_tests.cpp" "format_tests.cpp")
 
 target_link_libraries(test_runner PRIVATE
     common_target_settings
