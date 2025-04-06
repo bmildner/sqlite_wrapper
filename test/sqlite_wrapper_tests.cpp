@@ -90,11 +90,12 @@ TEST(sqlite_wrapper_utils_tests, format_source_location_success)
 }
 
 // TODO: maybe move to separate file
-// TODO: enable for std::format if std::runtime_format (C++26) is available
-#ifdef SQLITEWRAPPER_FORMAT_USE_FMT
+// only enabled for fmt::format or std::format if std::runtime_format is available (C++26)
+#if defined(SQLITEWRAPPER_FORMAT_USE_FMT) || (__cpp_lib_format >= 202311L)
 TEST(sqlite_wrapper_utils_tests, format_source_location_fails)
 {
-  ASSERT_THAT([&]() { (void)sqlite_wrapper::format(fmt::runtime("{:6}"), std::source_location::current()); },
+  ASSERT_THAT([&]()
+              { (void)sqlite_wrapper::format(sqlite_wrapper::runtime_format("{:6}"), std::source_location::current()); },
               ThrowsMessage<sqlite_wrapper::format_error>(HasSubstr("unknown format specifier")));
 }
 
@@ -119,14 +120,14 @@ TEST(sqlite_wrapper_utils_tests, formatting_fails_in_empty_format_spec)
 
   EXPECT_EQ(sqlite_wrapper::format("{}", mys), sqlite_wrapper::format("{}", mys.i));
 
-  ASSERT_THAT([&]() { (void)sqlite_wrapper::format(fmt::runtime("{:6}"), mys); },
-            ThrowsMessage<sqlite_wrapper::format_error>(HasSubstr("unknown format specifier")));
+  ASSERT_THAT([&]() { (void)sqlite_wrapper::format(sqlite_wrapper::runtime_format("{:6}"), mys); },
+              ThrowsMessage<sqlite_wrapper::format_error>(HasSubstr("unknown format specifier")));
 
-  ASSERT_THAT([&]() { (void)sqlite_wrapper::format(fmt::runtime("{: }"), mys); },
-          ThrowsMessage<sqlite_wrapper::format_error>(HasSubstr("unknown format specifier")));
+  ASSERT_THAT([&]() { (void)sqlite_wrapper::format(sqlite_wrapper::runtime_format("{: }"), mys); },
+              ThrowsMessage<sqlite_wrapper::format_error>(HasSubstr("unknown format specifier")));
 
-  ASSERT_THAT([&]() { (void)sqlite_wrapper::format(fmt::runtime("{:\t}"), mys); },
-          ThrowsMessage<sqlite_wrapper::format_error>(HasSubstr("unknown format specifier")));
+  ASSERT_THAT([&]() { (void)sqlite_wrapper::format(sqlite_wrapper::runtime_format("{:\t}"), mys); },
+              ThrowsMessage<sqlite_wrapper::format_error>(HasSubstr("unknown format specifier")));
 }
 #endif
 
