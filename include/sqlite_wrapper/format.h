@@ -1,12 +1,12 @@
 #pragma once
 
-#include <source_location>
 #include <type_traits>
 #include <utility>
 
 #ifdef __has_include
 #  if __has_include(<format>)
 #    include <format>
+#    include <source_location>
 #    define SQLITEWRAPPER_FORMAT_NAMESPACE_NAME std
 #    define SQLITEWRAPPER_FORMAT_NAMESPACE ::std
 #  elif __has_include(<fmt/format.h>)
@@ -51,13 +51,8 @@ namespace sqlite_wrapper
   {
     static constexpr auto parse(SQLITEWRAPPER_FORMAT_NAMESPACE::format_parse_context& parse_ctx)
     {
-      // NOLINTNEXTLINE(readability-qualified-auto) false positive!
-      auto iter{parse_ctx.begin()};
-      // skip spaces and tabs
-      while ((iter != parse_ctx.end()) && (*iter != '}'))
-      {
-        iter++;
-      }
+      // NOLINTNEXTLINE(readability-qualified-auto) "const auto*" is more an implementation detail here!
+      const auto iter{parse_ctx.begin()};
       if ((iter != parse_ctx.end()) && (*iter != '}'))
       {
         throw sqlite_wrapper::format_error("unknown format specifier");

@@ -90,11 +90,43 @@ TEST(sqlite_wrapper_utils_tests, format_source_location_success)
 }
 
 // TODO: maybe move to separate file
+// TODO: enable for std::format if std::runtime_format (C++26) is available
 #ifdef SQLITEWRAPPER_FORMAT_USE_FMT
 TEST(sqlite_wrapper_utils_tests, format_source_location_fails)
 {
   ASSERT_THAT([&]() { (void)sqlite_wrapper::format(fmt::runtime("{:6}"), std::source_location::current()); },
               ThrowsMessage<sqlite_wrapper::format_error>(HasSubstr("unknown format specifier")));
+}
+
+struct my_struct
+{
+  int i{4711};
+};
+
+template <>
+struct SQLITEWRAPPER_FORMAT_NAMESPACE_NAME::formatter<my_struct> : sqlite_wrapper::empty_format_spec
+{
+  template <typename FmtContext>
+  static auto format(my_struct mys, FmtContext& ctx)
+  {
+    return SQLITEWRAPPER_FORMAT_NAMESPACE::format_to(ctx.out(), "{}", mys.i);
+  }
+};
+
+TEST(sqlite_wrapper_utils_tests, formatting_fails_in_empty_format_spec)
+{
+  const my_struct mys;
+
+  EXPECT_EQ(sqlite_wrapper::format("{}", mys), sqlite_wrapper::format("{}", mys.i));
+
+  ASSERT_THAT([&]() { (void)sqlite_wrapper::format(fmt::runtime("{:6}"), mys); },
+            ThrowsMessage<sqlite_wrapper::format_error>(HasSubstr("unknown format specifier")));
+
+  ASSERT_THAT([&]() { (void)sqlite_wrapper::format(fmt::runtime("{: }"), mys); },
+          ThrowsMessage<sqlite_wrapper::format_error>(HasSubstr("unknown format specifier")));
+
+  ASSERT_THAT([&]() { (void)sqlite_wrapper::format(fmt::runtime("{:\t}"), mys); },
+          ThrowsMessage<sqlite_wrapper::format_error>(HasSubstr("unknown format specifier")));
 }
 #endif
 
