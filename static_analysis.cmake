@@ -5,13 +5,9 @@ set(ENABLE_STATIC_ANALYSIS ON CACHE BOOL "Enables static analysis with tools lik
 # but currently the /EHsc option seems to be ignored and clang-tidy complains about exceptions ...
 if ((ENABLE_STATIC_ANALYSIS) AND (NOT DEFINED MSVC))
   # search for clang-tidy
-  if (DEFINED ENV{CLANG_TIDY})
-    set(CLANG_TIDY $ENV{CLANG_TIDY})
-  else()
-    if (NOT CLANG_TIDY)
-      find_program(CLANG_TIDY NAMES clang-tidy REQUIRED)
-    endif ()
-  endif()
+  if (NOT CLANG_TIDY)
+    find_program(CLANG_TIDY NAMES clang-tidy REQUIRED)
+  endif ()
 
   # enable clang-tidy
   set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY}; -extra-arg=-Wno-unknown-warning-option; -extra-arg=-Wno-ignored-optimization-argument)

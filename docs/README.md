@@ -11,28 +11,21 @@
 - ccache:
   - if installed and found by cmake ccache will be automatically used
   
+- using non-std tool and compiler names
+  - use cmake presets, see "linux-base-newest-toolset" for example
+
 ### Linux only:
 - gcovr: (optional for code coverage) 
   - install latest version via pip/pipx install gcovr 
 
 ## Environment Variables
-
 - VCPKG_ROOT
   - must always point to vcpkg installation, used in CMakePresets.json
-- CC
-  - to set C compiler, like gcc-12
-- CXX
-  - to set C++ compiler, like g++-12 
-- CLANG_TIDY
-  - to set your clang-tidy, like clang-tidy-15
-- GCOV
-  - like GCOV=gcov-12 if your compiler is not g++ or clang, like using g++-12 on Ubuntu 22.04 for example
 - ASAN_OPTIONS
   - options for AddressSanitizer, set to "halt_on_error=true", "help=1" prints all supported options, separator for 
     multiple options is ":"  
 
 ## Hints
-
 - If test_runner or test_runner_mocked crash directly at startup with `AddressSanitizer:DEADLYSIGNAL` ... 
   `Segmentation fault (core dumped)` or enter an endless loop printing `AddressSanitizer:DEADLYSIGNAL` you may have hit
    an incompatibility between asan and an high-entropy ASLR in you linux kernel!
