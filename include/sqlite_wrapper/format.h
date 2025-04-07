@@ -1,6 +1,5 @@
 #pragma once
 
-#include <string_view>
 #include <type_traits>
 #include <utility>
 
@@ -61,25 +60,6 @@ namespace sqlite_wrapper
       return iter;
     }
   };
-
-#if defined(SQLITEWRAPPER_FORMAT_USE_FMT) || defined(DOXYGEN)
-  /**
-   * Creates a runtime format string for either fmt::format or std::format in C++26 or higher.
-   * @note This function is only provided if fmt::format is used or in >= C++26!
-   *
-   * @param fmt_string format string
-   * @returns a runtime format string containing the given format string
-   */
-  inline auto runtime_format(std::string_view fmt_string) noexcept(noexcept(fmt::runtime(fmt_string)))
-  {
-    return fmt::runtime(fmt_string);
-  }
-#elif __cpp_lib_format >= 202311L  // >= C++26
-  inline auto runtime_format(std::string_view fmt_string) noexcept
-  {
-    return std::runtime_format(fmt_string);
-  }
-  #endif
 }  // namespace sqlite_wrapper
 
 #ifndef SQLITEWRAPPER_FORMAT_USE_FMT
