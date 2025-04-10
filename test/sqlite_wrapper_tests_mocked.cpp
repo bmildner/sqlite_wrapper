@@ -283,6 +283,17 @@ TEST_F(sqlite_wrapper_mocked_tests, open_fails)
                   StartsWith(sqlite_wrapper::format("invalid open_flags value \"{}\"", bad_open_flags))));
 }
 
+TEST_F(sqlite_wrapper_mocked_tests, close_fails_silently)
+{
+  sqlite3 database;
+
+  EXPECT_CALL(*get_mock(), sqlite3_close(Eq(&database))).WillOnce(Return(SQLITE_INTERNAL));
+
+  {
+    const sqlite_wrapper::database db_handle{&database};
+  }
+}
+
 TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_no_param_success)
 {
   const auto database{expect_and_get_database()};
