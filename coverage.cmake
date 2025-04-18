@@ -1,8 +1,9 @@
 add_custom_target(run_all_tests
-        COMMAND test_runner
-        COMMAND echo ""
         COMMAND echo "--------------------------------------------------------------------------------"
-        COMMAND echo ""
+        COMMAND echo "test_runner"
+        COMMAND test_runner
+        COMMAND echo "--------------------------------------------------------------------------------"
+        COMMAND echo "test_runner_mocked"
         COMMAND test_runner_mocked
         WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
         USES_TERMINAL)
