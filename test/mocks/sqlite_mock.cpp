@@ -1,5 +1,8 @@
 #include "sqlite_mock.h"
+
 #include "free_function_mock.h"
+
+#include <sqlite3.h>
 
 using sqlite_wrapper::mocks::sqlite3_mock;
 using sqlite_wrapper::mocks::get_global_mock;

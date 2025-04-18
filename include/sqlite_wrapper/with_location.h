@@ -2,6 +2,7 @@
 
 #include <source_location>
 #include <type_traits>
+#include <utility>
 
 namespace sqlite_wrapper
 {

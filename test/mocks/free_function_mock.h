@@ -1,14 +1,13 @@
 #pragma once
 
+#include "sqlite_wrapper/format.h"
+
 #include <gmock/gmock.h>
 
-#include <source_location>
-#include <type_traits>
 #include <memory>
+#include <source_location>
 #include <stdexcept>
-
-// format.h is header only, but still this is a bit of a hack ...
-#include "sqlite_wrapper/format.h"
+#include <type_traits>
 
 namespace sqlite_wrapper::mocks
 {

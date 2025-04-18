@@ -13,7 +13,6 @@ Checks: '*,
   -openmp-*, 
   -zircon-*,
   -cert-err58-cpp,
-  -misc-include-cleaner,
   -performance-enum-size'
 CheckOptions:
   - key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic

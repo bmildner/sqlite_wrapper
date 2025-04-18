@@ -1,10 +1,10 @@
 #include "sqlite_wrapper/create_table.h"
 
+#include "sqlite_wrapper/format.h"
+
 #include <cassert>
 #include <filesystem>
 #include <iostream>
-
-#include "sqlite_wrapper/format.h"
 
 // TODO: remove or turn into unit-tests
 // NOLINTBEGIN GCOVR_EXCL_START

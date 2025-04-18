@@ -1,9 +1,9 @@
 #pragma once
 
-#include <memory>
-
 #include "sqlite_wrapper/config.h"
 #include "sqlite_wrapper/with_location.h"
+
+#include <memory>
 
 // forward declarations of sqlite3 (pimpl) types
 extern "C"

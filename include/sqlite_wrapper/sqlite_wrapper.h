@@ -1,5 +1,11 @@
 ﻿#pragma once
 
+#include "sqlite_wrapper/config.h"
+#include "sqlite_wrapper/format.h"
+#include "sqlite_wrapper/raii.h"
+#include "sqlite_wrapper/sqlite_error.h"
+#include "sqlite_wrapper/with_location.h"
+
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
@@ -12,12 +18,6 @@
 #include <string_view>
 #include <tuple>
 #include <vector>
-
-#include "sqlite_wrapper/config.h"
-#include "sqlite_wrapper/format.h"
-#include "sqlite_wrapper/raii.h"
-#include "sqlite_wrapper/sqlite_error.h"
-#include "sqlite_wrapper/with_location.h"
 
 namespace sqlite_wrapper
 {

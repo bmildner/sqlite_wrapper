@@ -1,18 +1,28 @@
+#include "free_function_mock.h"
+#include "sqlite_mock.h"
+
+#include "sqlite_wrapper/format.h"
+#include "sqlite_wrapper/raii.h"
+#include "sqlite_wrapper/sqlite_error.h"
+#include "sqlite_wrapper/sqlite_wrapper.h"
+
+#include <sqlite3.h>
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
+
 #include <array>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <list>
 #include <memory>
+#include <optional>
 #include <ranges>
 #include <set>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
-
-#include <gtest/gtest.h>
-
-#include "free_function_mock.h"
-#include "sqlite_mock.h"
-#include "sqlite_wrapper/format.h"
-#include "sqlite_wrapper/sqlite_wrapper.h"
 
 using sqlite_wrapper::mocks::reset_global_mock;
 using sqlite_wrapper::mocks::sqlite3_mock;
@@ -467,7 +477,7 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_range_binding_text
   const auto database{expect_and_get_database()};
 
   using namespace std::literals;
-  const std::vector string_vector{"abc"s, "defg"s, "hijklm"s, "nopqrst"s};
+  const std::vector string_vector{"abc"s, "defg"s, "hijklm"s, "nopqrst"s};  // NOLINT(*-include-cleaner)
   const std::list string_view_list{"0.12345"sv, "1.23456"sv, "2.34567"sv, "3.45678"sv, "4.56789"sv};
 
   expect_bind_list expected_binder;

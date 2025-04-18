@@ -1,11 +1,11 @@
 #pragma once
 
+#include "sqlite_wrapper/config.h"
+#include "sqlite_wrapper/raii.h"
+
 #include <source_location>
 #include <stdexcept>
 #include <string_view>
-
-#include "sqlite_wrapper/config.h"
-#include "sqlite_wrapper/raii.h"
 
 namespace sqlite_wrapper
 {

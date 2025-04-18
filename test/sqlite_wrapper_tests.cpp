@@ -1,10 +1,11 @@
+#include "sqlite_wrapper/sqlite_error.h"
+#include "sqlite_wrapper/sqlite_wrapper.h"
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <filesystem>
-
-#include "sqlite_wrapper/format.h"
-#include "sqlite_wrapper/sqlite_wrapper.h"
+#include <source_location>
 
 using ::testing::AllOf;
 using ::testing::HasSubstr;

@@ -1,8 +1,16 @@
 ﻿#include "sqlite_wrapper/sqlite_wrapper.h"
 
-#include <cassert>
+#include "sqlite_wrapper/format.h"
+#include "sqlite_wrapper/raii.h"
 
 #include <sqlite3.h>
+
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
+#include <source_location>
+#include <string>
+#include <string_view>
 
 namespace sqlite_wrapper
 {

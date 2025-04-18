@@ -1,11 +1,14 @@
 #include "sqlite_wrapper/sqlite_error.h"
 
-#include <cassert>
-#include <string>
+#include "sqlite_wrapper/format.h"
+#include "sqlite_wrapper/raii.h"
 
 #include <sqlite3.h>
 
-#include "sqlite_wrapper/format.h"
+#include <cassert>
+#include <stdexcept>
+#include <string>
+#include <string_view>
 
 namespace sqlite_wrapper
 {
