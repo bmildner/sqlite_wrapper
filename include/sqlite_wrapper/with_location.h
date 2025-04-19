@@ -20,7 +20,7 @@ namespace sqlite_wrapper
   template <typename T>
   struct with_location
   {
-    using value_type = std::decay_t<T>;
+    using value_type = std::remove_reference_t<T>;
 
     // NOLINTNEXTLINE(hicpp-explicit-conversions)
     with_location(const value_type& value, const std::source_location& loc = std::source_location::current())
