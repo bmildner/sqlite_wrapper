@@ -285,14 +285,16 @@ TEST_F(sqlite_wrapper_mocked_tests, open_fails)
                   AllOf(StartsWith(sqlite_wrapper::format("sqlite3_open() returned nullptr for database \"{}\"", db_file_name)),
                         HasSubstr("SQLITE_ERROR"))));
 
-  const sqlite_wrapper::open_flags bad_open_flags{to_underlying(sqlite_wrapper::open_flags::open_only) |
-                                                  to_underlying(sqlite_wrapper::open_flags::open_or_create)};
+  constexpr sqlite_wrapper::open_flags bad_open_flags{to_underlying(sqlite_wrapper::open_flags::open_only) |
+                                                      to_underlying(sqlite_wrapper::open_flags::open_or_create)};
 
   ASSERT_THAT([] { (void)sqlite_wrapper::open(db_file_name, bad_open_flags); },
               testing::ThrowsMessage<sqlite_wrapper::sqlite_error>(
                   StartsWith(sqlite_wrapper::format("invalid open_flags value \"{}\"", bad_open_flags))));
 }
 
+// we can only thest this in release builds because there is an assert!
+#ifdef NDEBUG
 TEST_F(sqlite_wrapper_mocked_tests, close_fails_silently)
 {
   sqlite3 database;
@@ -303,6 +305,7 @@ TEST_F(sqlite_wrapper_mocked_tests, close_fails_silently)
     const sqlite_wrapper::database db_handle{&database};
   }
 }
+#endif
 
 TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_no_param_success)
 {
