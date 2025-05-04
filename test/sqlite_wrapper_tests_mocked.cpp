@@ -183,6 +183,10 @@ namespace
     void expect_and_create_statement_with_failed_binding(const sqlite_wrapper::db_with_location& database,
                                                          const expect_bind_function& binder, std::string_view type,
                                                          Params&&... params);
+
+    static void expect_sqlite_error_with_statement(const sqlite_wrapper::db_with_location& database,
+                                                   const sqlite_wrapper::stmt_with_location& statement, const Sequence& sequence,
+                                                   const char* error_message);
   };  // class sqlite_wrapper_mocked_tests
 
   void sqlite_wrapper_mocked_tests::SetUp()
@@ -245,6 +249,8 @@ namespace
     // make sure mocks are called in the correct order!
     const Sequence sequence{};
 
+    constexpr auto* error_message{"bind failed"};
+
     EXPECT_CALL(*get_mock(),
                 sqlite3_prepare_v2(database.value, StrEq(dummy_sql), static_cast<int>(dummy_sql.size()), NotNull(), IsNull()))
         .InSequence(sequence)
@@ -253,25 +259,7 @@ namespace
 
     binder(&statement, 1, sequence, SQLITE_MISUSE);
 
-    EXPECT_CALL(*get_mock(), sqlite3_sql(&statement))
-        .InSequence(sequence)
-        .WillOnce(Return(dummy_sql_str.c_str()))
-        .RetiresOnSaturation();
-
-    EXPECT_CALL(*get_mock(), sqlite3_db_handle(&statement))
-        .InSequence(sequence)
-        .WillOnce(Return(database.value))
-        .RetiresOnSaturation();
-
-    EXPECT_CALL(*get_mock(), sqlite3_errmsg(database.value))
-        .InSequence(sequence)
-        .WillOnce(Return("bind failed"))
-        .RetiresOnSaturation();
-
-    EXPECT_CALL(*get_mock(), sqlite3_errstr(SQLITE_MISUSE))
-        .InSequence(sequence)
-        .WillOnce(Return(sqlite_errstr))
-        .RetiresOnSaturation();
+    expect_sqlite_error_with_statement(database.value, &statement, sequence, error_message);
 
     EXPECT_CALL(*get_mock(), sqlite3_finalize(&statement)).InSequence(sequence).WillOnce(Return(SQLITE_OK)).RetiresOnSaturation();
 
@@ -279,7 +267,34 @@ namespace
                 { (void)sqlite_wrapper::create_prepared_statement(database.value, dummy_sql, std::forward<Params>(params)...); },
                 ThrowsMessage<sqlite_wrapper::sqlite_error>(
                     AllOf(StartsWith(sqlite_wrapper::format("failed to bind {} to index 1, failed with:", type)),
-                          HasSubstr(dummy_sql), HasSubstr(sqlite_errstr))));
+                          HasSubstr(dummy_sql), HasSubstr(sqlite_errstr), HasSubstr(error_message))));
+  }
+
+  void sqlite_wrapper_mocked_tests::expect_sqlite_error_with_statement(const sqlite_wrapper::db_with_location& database,
+                                                                       const sqlite_wrapper::stmt_with_location& statement,
+                                                                       const Sequence& sequence, const char* error_message)
+  {
+    EXPECT_CALL(*get_mock(), sqlite3_sql(statement.value))
+        .InSequence(sequence)
+        .WillOnce(Return(dummy_sql_str.c_str()))
+        .RetiresOnSaturation();
+
+    EXPECT_CALL(*get_mock(), sqlite3_db_handle(statement.value))
+        .InSequence(sequence)
+        .WillOnce(Return(database.value))
+        .RetiresOnSaturation();
+
+    ASSERT_NE(error_message, nullptr);
+
+    EXPECT_CALL(*get_mock(), sqlite3_errmsg(database.value))
+        .InSequence(sequence)
+        .WillOnce(Return(error_message))
+        .RetiresOnSaturation();
+
+    EXPECT_CALL(*get_mock(), sqlite3_errstr(SQLITE_MISUSE))
+        .InSequence(sequence)
+        .WillOnce(Return(sqlite_errstr))
+        .RetiresOnSaturation();
   }
 
   auto to_byte_vector(std::string_view str) -> sqlite_wrapper::byte_vector
@@ -595,6 +610,36 @@ TEST_F(sqlite_wrapper_mocked_tests, bind_value_blob_fails)
   const auto value{to_byte_vector("hello world")};
 
   expect_and_create_statement_with_failed_binding(&database, expect_blob_bind(value), "BLOB", value);
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, step_success)
+{
+  ::sqlite3_stmt statement{};
+
+  const Sequence sequence{};
+
+  EXPECT_CALL(*get_mock(), sqlite3_step(&statement)).InSequence(sequence).WillOnce(Return(SQLITE_ROW)).RetiresOnSaturation();
+  EXPECT_CALL(*get_mock(), sqlite3_step(&statement)).InSequence(sequence).WillOnce(Return(SQLITE_DONE)).RetiresOnSaturation();
+
+  ASSERT_TRUE(sqlite_wrapper::step(&statement));
+  ASSERT_FALSE(sqlite_wrapper::step(&statement));
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, step_fails)
+{
+  ::sqlite3 database{};
+  ::sqlite3_stmt statement{};
+  constexpr auto* error_message{"step failure"};
+
+  const Sequence sequence{};
+
+  EXPECT_CALL(*get_mock(), sqlite3_step(&statement)).InSequence(sequence).WillOnce(Return(SQLITE_MISUSE));
+
+  expect_sqlite_error_with_statement(&database, &statement, sequence, error_message);
+
+  ASSERT_THAT([&]() { (void)sqlite_wrapper::step(&statement); },
+              ThrowsMessage<sqlite_wrapper::sqlite_error>(AllOf(StartsWith("failed to step, failed with:"), HasSubstr(dummy_sql),
+                                                                HasSubstr(sqlite_errstr), HasSubstr(error_message))));
 }
 
 // TODO: tests for other database base types and other containers/ranges
