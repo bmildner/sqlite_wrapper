@@ -131,7 +131,7 @@ namespace sqlite_wrapper
     } (std::make_index_sequence<std::tuple_size_v<T>>());
 
     template<typename T, std::size_t N>
-    concept has_database_type_tuple_element = database_type<typename std::tuple_element_t<N, T>>;
+    concept has_database_type_tuple_element = database_type<std::tuple_element_t<N, T>>;
   }
 
   template <typename T>
