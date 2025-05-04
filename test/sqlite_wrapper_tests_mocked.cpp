@@ -27,22 +27,23 @@
 using sqlite_wrapper::mocks::reset_global_mock;
 using sqlite_wrapper::mocks::sqlite3_mock;
 
-using testing::AllOf;
-using testing::DoAll;
-using testing::ElementsAreArray;
-using testing::Eq;
-using testing::HasSubstr;
-using testing::InSequence;
-using testing::Invoke;
-using testing::IsNull;
-using testing::Mock;
-using testing::NotNull;
-using testing::Return;
-using testing::Sequence;
-using testing::SetArgPointee;
-using testing::StartsWith;
-using testing::StrEq;
-using testing::Test;
+using ::testing::AllOf;
+using ::testing::DoAll;
+using ::testing::ElementsAreArray;
+using ::testing::Eq;
+using ::testing::HasSubstr;
+using ::testing::InSequence;
+using ::testing::Invoke;
+using ::testing::IsNull;
+using ::testing::Mock;
+using ::testing::NotNull;
+using ::testing::Return;
+using ::testing::Sequence;
+using ::testing::SetArgPointee;
+using ::testing::StartsWith;
+using ::testing::StrEq;
+using ::testing::Test;
+using ::testing::ThrowsMessage;
 
 extern "C"
 {
@@ -61,6 +62,9 @@ namespace
 {
   constexpr auto* db_file_name{"db_file_name"};
   constexpr std::string_view dummy_sql{"SELECT * FROM table WHERE x == ? AND y != ?"};
+  const std::string dummy_sql_str{dummy_sql};
+  constexpr auto* sqlite_error_message{"error message from sqlite3_errmsg()"};
+  constexpr auto* sqlite_errstr{"error string from sqlite3_errstr(21)"};
 
   constexpr auto get_mock{[] { return sqlite_wrapper::mocks::get_global_mock<sqlite3_mock>(); }};
   constexpr auto create_and_set_global_mock{[] { return sqlite_wrapper::mocks::create_and_set_global_mock<sqlite3_mock>(); }};
@@ -85,58 +89,56 @@ namespace
       expect_open_and_close(file_name, database, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE);
     }
 
-    static auto expect_and_get_database() -> sqlite_wrapper::database;
-
-    using expect_bind_function = std::function<void(::sqlite3_stmt* stmt, int index, const Sequence& sequence)>;
+    using expect_bind_function = std::function<void(::sqlite3_stmt* stmt, int index, const Sequence& sequence, int sqlite_error)>;
     using expect_bind_list = std::vector<expect_bind_function>;
 
     static auto expect_null_bind() -> expect_bind_function
     {
-      return [](::sqlite3_stmt* stmt, int index, const Sequence& sequence)
+      return [](::sqlite3_stmt* stmt, int index, const Sequence& sequence, int sqlite_error)
       {
         EXPECT_CALL(*get_mock(), sqlite3_bind_null(stmt, index))
             .InSequence(sequence)
-            .WillOnce(Return(SQLITE_OK))
+            .WillOnce(Return(sqlite_error))
             .RetiresOnSaturation();
       };
     }
 
     static auto expect_int64_bind(std::int64_t value) -> expect_bind_function
     {
-      return [value](::sqlite3_stmt* stmt, int index, const Sequence& sequence)
+      return [value](::sqlite3_stmt* stmt, int index, const Sequence& sequence, int sqlite_error)
       {
         EXPECT_CALL(*get_mock(), sqlite3_bind_int64(stmt, index, value))
             .InSequence(sequence)
-            .WillOnce(Return(SQLITE_OK))
+            .WillOnce(Return(sqlite_error))
             .RetiresOnSaturation();
       };
     }
 
     static auto expect_double_bind(double value) -> expect_bind_function
     {
-      return [value](::sqlite3_stmt* stmt, int index, const Sequence& sequence)
+      return [value](::sqlite3_stmt* stmt, int index, const Sequence& sequence, int sqlite_error)
       {
         EXPECT_CALL(*get_mock(), sqlite3_bind_double(stmt, index, value))
             .InSequence(sequence)
-            .WillOnce(Return(SQLITE_OK))
+            .WillOnce(Return(sqlite_error))
             .RetiresOnSaturation();
       };
     }
 
     static auto expect_text_bind(const std::string& value) -> expect_bind_function
     {
-      return [value](::sqlite3_stmt* stmt, int index, const Sequence& sequence)
+      return [value](::sqlite3_stmt* stmt, int index, const Sequence& sequence, int sqlite_error)
       {
         EXPECT_CALL(*get_mock(), sqlite3_bind_text64(stmt, index, StrEq(value), value.size(), IsNull(), SQLITE_UTF8))
             .InSequence(sequence)
-            .WillOnce(Return(SQLITE_OK))
+            .WillOnce(Return(sqlite_error))
             .RetiresOnSaturation();
       };
     }
 
     static auto expect_blob_bind(const sqlite_wrapper::byte_vector& value) -> expect_bind_function
     {
-      return [value](::sqlite3_stmt* stmt, int index, const Sequence& sequence)
+      return [value](::sqlite3_stmt* stmt, int index, const Sequence& sequence, int sqlite_error)
       {
         EXPECT_CALL(*get_mock(), sqlite3_bind_blob64(stmt, index, NotNull(), value.size(), IsNull()))
             .InSequence(sequence)
@@ -148,7 +150,7 @@ namespace
 
                                   ASSERT_THAT(data, ElementsAreArray(value));
                                 }),
-                            Return(SQLITE_OK)))
+                            Return(sqlite_error)))
             .RetiresOnSaturation();
       };
     }
@@ -176,6 +178,11 @@ namespace
 
       return stmt;
     }
+
+    template <typename... Params>
+    void expect_and_create_statement_with_failed_binding(const sqlite_wrapper::db_with_location& database,
+                                                         const expect_bind_function& binder, std::string_view type,
+                                                         Params&&... params);
   };  // class sqlite_wrapper_mocked_tests
 
   void sqlite_wrapper_mocked_tests::SetUp()
@@ -200,15 +207,6 @@ namespace
     EXPECT_CALL(*get_mock(), sqlite3_close(Eq(&database))).WillOnce(Return(SQLITE_OK)).RetiresOnSaturation();
   }
 
-  auto sqlite_wrapper_mocked_tests::expect_and_get_database() -> sqlite_wrapper::database
-  {
-    static sqlite3 database{};
-
-    expect_open_and_close(db_file_name, database);
-
-    return sqlite_wrapper::open(db_file_name);
-  }
-
   template <typename... Params>
   auto sqlite_wrapper_mocked_tests::expect_and_get_statement(const sqlite_wrapper::db_with_location& database,
                                                              ::sqlite3_stmt& statement, const expect_bind_list& binders,
@@ -227,7 +225,7 @@ namespace
 
     for (const auto& binder : binders)
     {
-      binder(&statement, index++, sequence);
+      binder(&statement, index++, sequence, SQLITE_OK);
     }
 
     EXPECT_CALL(*get_mock(), sqlite3_finalize(&statement)).InSequence(sequence).WillOnce(Return(SQLITE_OK)).RetiresOnSaturation();
@@ -236,6 +234,56 @@ namespace
 
     return stmt;
   }
+
+  template <typename... Params>
+  void sqlite_wrapper_mocked_tests::expect_and_create_statement_with_failed_binding(
+      const sqlite_wrapper::db_with_location& database, const expect_bind_function& binder, std::string_view type,
+      Params&&... params)
+  {
+    static ::sqlite3_stmt statement;
+
+    // make sure mocks are called in the correct order!
+    const Sequence sequence{};
+
+    EXPECT_CALL(*get_mock(),
+                sqlite3_prepare_v2(database.value, StrEq(dummy_sql), static_cast<int>(dummy_sql.size()), NotNull(), IsNull()))
+        .InSequence(sequence)
+        .WillOnce(DoAll(SetArgPointee<3>(&statement), Return(SQLITE_OK)))
+        .RetiresOnSaturation();
+
+    binder(&statement, 1, sequence, SQLITE_MISUSE);
+
+    EXPECT_CALL(*get_mock(), sqlite3_sql(&statement))
+        .InSequence(sequence)
+        .WillOnce(Return(dummy_sql_str.c_str()))
+        .RetiresOnSaturation();
+
+    EXPECT_CALL(*get_mock(), sqlite3_db_handle(&statement))
+        .InSequence(sequence)
+        .WillOnce(Return(database.value))
+        .RetiresOnSaturation();
+
+    EXPECT_CALL(*get_mock(), sqlite3_errmsg(database.value))
+        .InSequence(sequence)
+        .WillOnce(Return("bind failed"))
+        .RetiresOnSaturation();
+
+    EXPECT_CALL(*get_mock(), sqlite3_errstr(SQLITE_MISUSE))
+        .InSequence(sequence)
+        .WillOnce(Return(sqlite_errstr))
+        .RetiresOnSaturation();
+
+    EXPECT_CALL(*get_mock(), sqlite3_finalize(&statement))
+        .InSequence(sequence)
+        .WillOnce(Return(SQLITE_OK))
+        .RetiresOnSaturation();
+
+    ASSERT_THAT([&]() { (void)sqlite_wrapper::create_prepared_statement(database.value, dummy_sql, std::forward<Params>(params)...); },
+                ThrowsMessage<sqlite_wrapper::sqlite_error>(
+                    AllOf(StartsWith(sqlite_wrapper::format("failed to bind {} to index 1, failed with:", type)),
+                          HasSubstr(dummy_sql), HasSubstr(sqlite_errstr))));
+  }
+
 
   auto to_byte_vector(std::string_view str) -> sqlite_wrapper::byte_vector
   {
@@ -309,18 +357,17 @@ TEST_F(sqlite_wrapper_mocked_tests, close_fails_silently)
 
 TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_no_param_success)
 {
-  const auto database{expect_and_get_database()};
-
+  ::sqlite3 database{};
   ::sqlite3_stmt statement{};
 
-  const auto stmt{expect_and_get_statement(database.get(), statement)};
+  const auto stmt{expect_and_get_statement(&database, statement)};
 
   EXPECT_EQ(stmt.get(), &statement);
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_null_param_success)
 {
-  const auto database{expect_and_get_database()};
+  ::sqlite3 database{};
 
   constexpr std::optional<std::int64_t> optional_int{};
   constexpr std::optional<double> optional_double{};
@@ -328,14 +375,14 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_null
   constexpr std::optional<sqlite_wrapper::byte_vector> optional_blob{};
 
   expect_and_get_statement(
-      database.get(),
+      &database,
       {expect_null_bind(), expect_null_bind(), expect_null_bind(), expect_null_bind(), expect_null_bind(), expect_null_bind()},
       nullptr, std::nullopt, optional_int, optional_double, optional_string, optional_blob);
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_int64_param_success)
 {
-  const auto database{expect_and_get_database()};
+  ::sqlite3 database{};
 
   constexpr auto int64_value{std::int64_t{4711}};
   constexpr auto int32_value{std::int32_t{4712}};
@@ -348,7 +395,7 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_int6
   constexpr std::optional<std::int16_t> optional_int16{4719};
 
   expect_and_get_statement(
-      database.get(),
+      &database,
       {expect_int64_bind(int64_value), expect_int64_bind(int32_value), expect_int64_bind(uint32_value),
        expect_int64_bind(int16_value), expect_int64_bind(uint16_value), expect_int64_bind(int8_value),
        expect_int64_bind(uint8_value), expect_int64_bind(optional_int64.value()), expect_int64_bind(optional_int16.value())},
@@ -357,14 +404,14 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_int6
 
 TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_double_param_success)
 {
-  const auto database{expect_and_get_database()};
+  ::sqlite3 database{};
 
   constexpr auto double_value{1.23};
   constexpr auto float_value{4.56F};
   constexpr std::optional optional_double{9.87};
   constexpr std::optional optional_float{10.3F};
 
-  expect_and_get_statement(database.get(),
+  expect_and_get_statement(&database,
                            {expect_double_bind(double_value), expect_double_bind(float_value),
                             expect_double_bind(optional_double.value()), expect_double_bind(optional_float.value())},
                            double_value, float_value, optional_double, optional_float);
@@ -372,7 +419,7 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_doub
 
 TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_text_param_success)
 {
-  const auto database{expect_and_get_database()};
+  ::sqlite3 database{};
 
   constexpr auto* char_ptr_value{"char* value"};
   constexpr char char_array_value[]{"char[] value"};  // NOLINT(*-avoid-c-arrays)
@@ -382,7 +429,7 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_text
   const std::optional optional_string{std::string{"optional std::string value"}};
 
   expect_and_get_statement(
-      database.get(),
+      &database,
       {expect_text_bind(char_ptr_value), expect_text_bind({static_cast<const char*>(char_array_value)}),
        expect_text_bind(string_value), expect_text_bind(std::string{string_view_value}),
        expect_text_bind(std::string{optional_string_view.value()}), expect_text_bind(optional_string.value())},
@@ -391,7 +438,7 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_text
 
 TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_blob_param_success)
 {
-  const auto database{expect_and_get_database()};
+  ::sqlite3 database{};
 
   const auto byte_vector{to_byte_vector("byte vector blob")};
   const auto const_byte_span{to_const_byte_span("const byte span blob")};
@@ -400,7 +447,7 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_blob
   std::string non_const_string{"non-const byte span"};
   const std::span<std::byte> non_const_byte_span{to_byte_span(non_const_string)};
 
-  expect_and_get_statement(database.get(),
+  expect_and_get_statement(&database,
                            {expect_blob_bind(byte_vector), expect_blob_bind({const_byte_span.begin(), const_byte_span.end()}),
                             expect_blob_bind(optional_byte_vector.value()),
                             expect_blob_bind({optional_const_byte_span.value().begin(), optional_const_byte_span.value().end()}),
@@ -410,7 +457,7 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_basic_binding_blob
 
 TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_range_binding_null_params_success)
 {
-  const auto database{expect_and_get_database()};
+  ::sqlite3 database{};
 
   const std::vector vector_nullptr{nullptr, nullptr, nullptr, nullptr};
   constexpr std::array array_nullopt{std::nullopt, std::nullopt, std::nullopt};
@@ -427,12 +474,12 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_range_binding_null
     expected_binder.push_back(expect_null_bind());
   }
 
-  expect_and_get_statement(database.get(), expected_binder, vector_nullptr, array_nullopt);
+  expect_and_get_statement(&database, expected_binder, vector_nullptr, array_nullopt);
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_range_binding_int64_params_success)
 {
-  const auto database{expect_and_get_database()};
+  ::sqlite3 database{};
 
   const std::list<std::int64_t> int64_list{4711, 4712, 4713, 4714, 4715, 4716};
   constexpr std::array<std::int64_t, 4> int64_array{4717, 4718, 4719, 4720};
@@ -449,12 +496,12 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_range_binding_int6
     expected_binder.push_back(expect_int64_bind(value));
   }
 
-  expect_and_get_statement(database.get(), expected_binder, int64_list, int64_array);
+  expect_and_get_statement(&database, expected_binder, int64_list, int64_array);
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_range_binding_double_params_success)
 {
-  const auto database{expect_and_get_database()};
+  ::sqlite3 database{};
 
   const std::set double_set{0.12345, 1.23456, 2.34567, 3.45678, 4.56789};
   const auto double_view{std::ranges::take_view{
@@ -472,12 +519,12 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_range_binding_doub
     expected_binder.push_back(expect_double_bind(value));
   }
 
-  expect_and_get_statement(database.get(), expected_binder, double_set, double_view);
+  expect_and_get_statement(&database, expected_binder, double_set, double_view);
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_range_binding_text_params_success)
 {
-  const auto database{expect_and_get_database()};
+  ::sqlite3 database{};
 
   using namespace std::literals;
   const std::vector string_vector{"abc"s, "defg"s, "hijklm"s, "nopqrst"s};  // NOLINT(*-include-cleaner)
@@ -495,7 +542,62 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_range_binding_text
     expected_binder.push_back(expect_text_bind(std::string{value}));
   }
 
-  expect_and_get_statement(database.get(), expected_binder, string_vector, string_view_list);
+  expect_and_get_statement(&database, expected_binder, string_vector, string_view_list);
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_fails)
+{
+  ::sqlite3 database{};
+
+  EXPECT_CALL(*get_mock(),
+              sqlite3_prepare_v2(&database, StrEq(dummy_sql), static_cast<int>(dummy_sql.size()), NotNull(), IsNull()))
+      .WillOnce(Return(SQLITE_MISUSE));
+
+  EXPECT_CALL(*get_mock(), sqlite3_errmsg(&database)).WillOnce(Return(sqlite_error_message));
+  EXPECT_CALL(*get_mock(), sqlite3_errstr(SQLITE_MISUSE)).WillOnce(Return(sqlite_errstr));
+
+  ASSERT_THAT([&]() { (void) sqlite_wrapper::create_prepared_statement(&database, dummy_sql); },
+              ThrowsMessage<sqlite_wrapper::sqlite_error>(AllOf(StartsWith("failed to create prepared statement"),
+                                                                HasSubstr(dummy_sql), HasSubstr(sqlite_errstr))));
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, bind_value_null_fails)
+{
+  ::sqlite3 database{};
+
+  expect_and_create_statement_with_failed_binding(&database, expect_null_bind(), "null", nullptr);
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, bind_value_int64_fails)
+{
+  ::sqlite3 database{};
+  constexpr auto value{4711ULL};
+
+  expect_and_create_statement_with_failed_binding(&database, expect_int64_bind(value), "int64", value);
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, bind_value_double_fails)
+{
+  ::sqlite3 database{};
+  constexpr auto value{3.41};
+
+  expect_and_create_statement_with_failed_binding(&database, expect_double_bind(value), "double", value);
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, bind_value_string_fails)
+{
+  ::sqlite3 database{};
+  constexpr auto value{"hello world"};
+
+  expect_and_create_statement_with_failed_binding(&database, expect_text_bind(value), "string", value);
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, bind_value_blob_fails)
+{
+  ::sqlite3 database{};
+  const auto value{to_byte_vector("hello world")};
+
+  expect_and_create_statement_with_failed_binding(&database, expect_blob_bind(value), "BLOB", value);
 }
 
 // TODO: tests for other database base types and other containers/ranges
