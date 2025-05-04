@@ -273,17 +273,14 @@ namespace
         .WillOnce(Return(sqlite_errstr))
         .RetiresOnSaturation();
 
-    EXPECT_CALL(*get_mock(), sqlite3_finalize(&statement))
-        .InSequence(sequence)
-        .WillOnce(Return(SQLITE_OK))
-        .RetiresOnSaturation();
+    EXPECT_CALL(*get_mock(), sqlite3_finalize(&statement)).InSequence(sequence).WillOnce(Return(SQLITE_OK)).RetiresOnSaturation();
 
-    ASSERT_THAT([&]() { (void)sqlite_wrapper::create_prepared_statement(database.value, dummy_sql, std::forward<Params>(params)...); },
+    ASSERT_THAT([&]()
+                { (void)sqlite_wrapper::create_prepared_statement(database.value, dummy_sql, std::forward<Params>(params)...); },
                 ThrowsMessage<sqlite_wrapper::sqlite_error>(
                     AllOf(StartsWith(sqlite_wrapper::format("failed to bind {} to index 1, failed with:", type)),
                           HasSubstr(dummy_sql), HasSubstr(sqlite_errstr))));
   }
-
 
   auto to_byte_vector(std::string_view str) -> sqlite_wrapper::byte_vector
   {
@@ -556,9 +553,9 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_fails)
   EXPECT_CALL(*get_mock(), sqlite3_errmsg(&database)).WillOnce(Return(sqlite_error_message));
   EXPECT_CALL(*get_mock(), sqlite3_errstr(SQLITE_MISUSE)).WillOnce(Return(sqlite_errstr));
 
-  ASSERT_THAT([&]() { (void) sqlite_wrapper::create_prepared_statement(&database, dummy_sql); },
-              ThrowsMessage<sqlite_wrapper::sqlite_error>(AllOf(StartsWith("failed to create prepared statement"),
-                                                                HasSubstr(dummy_sql), HasSubstr(sqlite_errstr))));
+  ASSERT_THAT([&]() { (void)sqlite_wrapper::create_prepared_statement(&database, dummy_sql); },
+              ThrowsMessage<sqlite_wrapper::sqlite_error>(
+                  AllOf(StartsWith("failed to create prepared statement"), HasSubstr(dummy_sql), HasSubstr(sqlite_errstr))));
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, bind_value_null_fails)
