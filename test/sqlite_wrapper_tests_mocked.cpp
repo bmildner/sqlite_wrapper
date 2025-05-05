@@ -22,6 +22,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <vector>
 
 using sqlite_wrapper::mocks::reset_global_mock;
@@ -153,6 +154,108 @@ namespace
                             Return(sqlite_error)))
             .RetiresOnSaturation();
       };
+    }
+
+    static void expect_column_query(const sqlite_wrapper::stmt_with_location& stmt, const Sequence& sequence, int index)
+    {
+      EXPECT_CALL(*get_mock(), sqlite3_column_type(stmt.value, index))
+          .InSequence(sequence)
+          .WillOnce(Return(SQLITE_NULL))
+          .RetiresOnSaturation();
+    }
+
+    static void expect_column_query(const sqlite_wrapper::stmt_with_location& stmt, const Sequence& sequence, int index,
+                                    std::int64_t value)
+    {
+      EXPECT_CALL(*get_mock(), sqlite3_column_type(stmt.value, index))
+          .InSequence(sequence)
+          .WillOnce(Return(SQLITE_INTEGER))
+          .RetiresOnSaturation();
+
+      EXPECT_CALL(*get_mock(), sqlite3_column_int64(stmt.value, index))
+          .InSequence(sequence)
+          .WillOnce(Return(value))
+          .RetiresOnSaturation();
+    }
+
+    static void expect_column_query(const sqlite_wrapper::stmt_with_location& stmt, const Sequence& sequence, int index,
+                                    double value)
+    {
+      EXPECT_CALL(*get_mock(), sqlite3_column_type(stmt.value, index))
+          .InSequence(sequence)
+          .WillOnce(Return(SQLITE_FLOAT))
+          .RetiresOnSaturation();
+
+      EXPECT_CALL(*get_mock(), sqlite3_column_double(stmt.value, index))
+          .InSequence(sequence)
+          .WillOnce(Return(value))
+          .RetiresOnSaturation();
+    }
+
+    static void expect_column_query(const sqlite_wrapper::stmt_with_location& stmt, const Sequence& sequence, int index,
+                                    const std::string& value)
+    {
+      EXPECT_CALL(*get_mock(), sqlite3_column_type(stmt.value, index))
+          .InSequence(sequence)
+          .WillOnce(Return(SQLITE_TEXT))
+          .RetiresOnSaturation();
+
+      EXPECT_CALL(*get_mock(), sqlite3_column_text(stmt.value, index))
+          .InSequence(sequence)
+          .WillOnce(Return(reinterpret_cast<const unsigned char*>(value.c_str())))  // NOLINT(*-pro-type-reinterpret-cast)
+          .RetiresOnSaturation();
+
+      EXPECT_CALL(*get_mock(), sqlite3_column_bytes(stmt.value, index))
+          .InSequence(sequence)
+          .WillOnce(Return(static_cast<int>(value.size())))
+          .RetiresOnSaturation();
+    }
+
+    static void expect_column_query(const sqlite_wrapper::stmt_with_location& stmt, const Sequence& sequence, int index,
+                                    const sqlite_wrapper::byte_vector& value)
+    {
+      EXPECT_CALL(*get_mock(), sqlite3_column_type(stmt.value, index))
+          .InSequence(sequence)
+          .WillOnce(Return(SQLITE_BLOB))
+          .RetiresOnSaturation();
+
+      EXPECT_CALL(*get_mock(), sqlite3_column_blob(stmt.value, index))
+          .InSequence(sequence)
+          .WillOnce(Return(value.data()))
+          .RetiresOnSaturation();
+
+      EXPECT_CALL(*get_mock(), sqlite3_column_bytes(stmt.value, index))
+          .InSequence(sequence)
+          .WillOnce(Return(static_cast<int>(value.size())))
+          .RetiresOnSaturation();
+    }
+
+    template <sqlite_wrapper::optional_database_type Value>
+    static void expect_column_query(const sqlite_wrapper::stmt_with_location& stmt, const Sequence& sequence, int index,
+                                    const Value& value)
+    {
+      if (value.has_value())
+      {
+        expect_column_query(stmt, sequence, index, *value);
+      }
+      else
+      {
+        expect_column_query(stmt, sequence, index);
+      }
+    }
+
+    template <sqlite_wrapper::row_type Row>
+    static void expect_and_get_row(Row expected_row)
+    {
+      const Sequence sequence;
+      ::sqlite3_stmt stmt{};
+      int index{0};
+
+      std::apply([&](const auto&... value) { (expect_column_query(&stmt, sequence, index++, value), ...); }, expected_row);
+
+      const auto row{sqlite_wrapper::get_row<Row>(&stmt)};
+
+      ASSERT_EQ(row, expected_row);
     }
 
     template <typename... Params>
@@ -640,6 +743,36 @@ TEST_F(sqlite_wrapper_mocked_tests, step_fails)
   ASSERT_THAT([&]() { (void)sqlite_wrapper::step(&statement); },
               ThrowsMessage<sqlite_wrapper::sqlite_error>(AllOf(StartsWith("failed to step, failed with:"), HasSubstr(dummy_sql),
                                                                 HasSubstr(sqlite_errstr), HasSubstr(error_message))));
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, get_row_basic_db_types_success)
+{
+  using row_type = std::tuple<std::int64_t, double, std::string, sqlite_wrapper::byte_vector>;
+
+  const row_type expected_row{4711, 3.41, "hello world", to_byte_vector("BLOB data")};
+
+  expect_and_get_row(expected_row);
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, get_row_optional_db_types_success)
+{
+  using row_type = std::tuple<std::optional<std::int64_t>, std::optional<double>, std::optional<std::string>,
+                              std::optional<sqlite_wrapper::byte_vector>>;
+
+  {
+    const row_type expected_row{4711, 3.41, "hello world", to_byte_vector("BLOB data")};
+    expect_and_get_row(expected_row);
+  }
+
+  {
+    const row_type expected_row{std::nullopt, std::nullopt, std::nullopt, std::nullopt};
+    expect_and_get_row(expected_row);
+  }
+
+  {
+    const row_type expected_row{4711, std::nullopt, "hello world", std::nullopt};
+    expect_and_get_row(expected_row);
+  }
 }
 
 // TODO: tests for other database base types and other containers/ranges
