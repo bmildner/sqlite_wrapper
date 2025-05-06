@@ -130,6 +130,9 @@ namespace sqlite_wrapper
       return (has_tuple_element<T, N> && ...);
     } (std::make_index_sequence<std::tuple_size_v<T>>());
 
+    /**
+     * Checks that T has a tuple element N that is of type database_type
+     */
     template<typename T, std::size_t N>
     concept has_database_type_tuple_element = database_type<std::tuple_element_t<N, T>>;
   }
@@ -183,7 +186,8 @@ namespace sqlite_wrapper
 
     void bind_value_and_increment_index(const stmt_with_location& stmt, int& index, const single_binding_type auto& param)
     {
-      // TODO: not sure what array decay clang-tidy is complaining about here, maybe string !?
+      // TODO: not sure what array decay clang-tidy is complaining about here !?
+      //       probably a false-positive as clang-tidy 19 no longer complains!
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay,hicpp-no-array-decay)
       bind_value(stmt, index, param);
       index++;
