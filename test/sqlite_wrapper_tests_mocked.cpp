@@ -23,6 +23,7 @@
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 using sqlite_wrapper::mocks::reset_global_mock;
@@ -66,6 +67,7 @@ namespace
   const std::string dummy_sql_str{dummy_sql};
   constexpr auto* sqlite_error_message{"error message from sqlite3_errmsg()"};
   constexpr auto* sqlite_errstr{"error string from sqlite3_errstr(21)"};
+  constexpr auto* error_message_column_query_failed{"column query failed"};
 
   constexpr auto get_mock{[] { return sqlite_wrapper::mocks::get_global_mock<sqlite3_mock>(); }};
   constexpr auto create_and_set_global_mock{[] { return sqlite_wrapper::mocks::create_and_set_global_mock<sqlite3_mock>(); }};
@@ -230,28 +232,87 @@ namespace
           .RetiresOnSaturation();
     }
 
+    template <sqlite_wrapper::basic_database_type Value>
+    static void expect_column_query(const sqlite_wrapper::stmt_with_location& stmt, const Sequence& sequence, int index,
+                                    bool force_null, bool& was_force_null, const Value& value)
+    {
+      if (was_force_null)
+      {
+        return;
+      }
+
+      if (force_null)
+      {
+        ::sqlite3 database{};
+
+        was_force_null = true;
+
+        expect_column_query(stmt, sequence, index);  // null value
+        expect_sqlite_error_with_statement(&database, stmt, sequence, error_message_column_query_failed, SQLITE_MISMATCH);
+      }
+      else
+      {
+        expect_column_query(stmt, sequence, index, value);
+      }
+    }
+
     template <sqlite_wrapper::optional_database_type Value>
     static void expect_column_query(const sqlite_wrapper::stmt_with_location& stmt, const Sequence& sequence, int index,
-                                    const Value& value)
+                                    bool force_null, bool& was_force_null, const Value& value)
     {
-      if (value.has_value())
+      if (was_force_null)
+      {
+        return;
+      }
+
+      if (value.has_value() && !force_null)
       {
         expect_column_query(stmt, sequence, index, *value);
       }
       else
       {
-        expect_column_query(stmt, sequence, index);
+        expect_column_query(stmt, sequence, index);  // null value
       }
     }
 
+    template <typename T>
+    using force_null_array_type = std::array<bool, std::tuple_size_v<T>>;
+
+    template <typename T>
+    static auto fill_force_null_array(bool value = false) -> force_null_array_type<T>
+    {
+      force_null_array_type<T> force_null_array{};
+      force_null_array.fill(value);
+      return force_null_array;
+    }
+
     template <sqlite_wrapper::row_type Row>
-    static void expect_and_get_row(Row expected_row)
+    static void expect_row(
+        ::sqlite3_stmt* stmt, const Row& expected_row,
+        const force_null_array_type<Row>& force_null_array = fill_force_null_array<force_null_array_type<Row>>())
     {
       const Sequence sequence;
-      ::sqlite3_stmt stmt{};
       int index{0};
+      bool was_force_null{false};
 
-      std::apply([&](const auto&... value) { (expect_column_query(&stmt, sequence, index++, value), ...); }, expected_row);
+      std::apply(
+          [&](const auto&... values)
+          {
+            ((expect_column_query(stmt, sequence, index, force_null_array.at(static_cast<std::size_t>(index)), was_force_null,
+                                  values),
+              ++index),
+             ...);
+          },
+          expected_row);
+    }
+
+    template <sqlite_wrapper::row_type Row>
+    static void expect_and_get_row(const Row& expected_row, const force_null_array_type<Row>& force_null_array =
+                                                                fill_force_null_array<force_null_array_type<Row>>())
+    {
+      ::sqlite3_stmt stmt{};
+
+      expect_row(&stmt, expected_row, force_null_array);
 
       const auto row{sqlite_wrapper::get_row<Row>(&stmt)};
 
@@ -289,7 +350,7 @@ namespace
 
     static void expect_sqlite_error_with_statement(const sqlite_wrapper::db_with_location& database,
                                                    const sqlite_wrapper::stmt_with_location& statement, const Sequence& sequence,
-                                                   const char* error_message);
+                                                   const char* error_message, int sqlite_error = SQLITE_MISUSE);
   };  // class sqlite_wrapper_mocked_tests
 
   void sqlite_wrapper_mocked_tests::SetUp()
@@ -375,7 +436,8 @@ namespace
 
   void sqlite_wrapper_mocked_tests::expect_sqlite_error_with_statement(const sqlite_wrapper::db_with_location& database,
                                                                        const sqlite_wrapper::stmt_with_location& statement,
-                                                                       const Sequence& sequence, const char* error_message)
+                                                                       const Sequence& sequence, const char* error_message,
+                                                                       int sqlite_error)
   {
     EXPECT_CALL(*get_mock(), sqlite3_sql(statement.value))
         .InSequence(sequence)
@@ -394,7 +456,7 @@ namespace
         .WillOnce(Return(error_message))
         .RetiresOnSaturation();
 
-    EXPECT_CALL(*get_mock(), sqlite3_errstr(SQLITE_MISUSE))
+    EXPECT_CALL(*get_mock(), sqlite3_errstr(sqlite_error))
         .InSequence(sequence)
         .WillOnce(Return(sqlite_errstr))
         .RetiresOnSaturation();
@@ -773,6 +835,70 @@ TEST_F(sqlite_wrapper_mocked_tests, get_row_optional_db_types_success)
     const row_type expected_row{4711, std::nullopt, "hello world", std::nullopt};
     expect_and_get_row(expected_row);
   }
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, get_row_basic_db_types_fails_with_null_value)
+{
+  using row_type = std::tuple<std::int64_t, double, std::string, sqlite_wrapper::byte_vector>;
+
+  const row_type expected_row{4711, 3.41, "hello world", to_byte_vector("BLOB data")};
+
+  ::sqlite3_stmt statement{};
+
+  for (std::size_t index{0}; index < std::tuple_size_v<row_type>; ++index)
+  {
+    auto force_null_array{fill_force_null_array<row_type>()};
+
+    force_null_array.at(index) = true;
+    expect_row(&statement, expected_row, force_null_array);
+
+    ASSERT_THAT([&]() { (void)sqlite_wrapper::get_row<row_type>(&statement); },
+                ThrowsMessage<sqlite_wrapper::sqlite_error>(
+                    AllOf(StartsWith(sqlite_wrapper::format("column at index {} must not be NULL, failed with:", index)),
+                          HasSubstr(dummy_sql), HasSubstr(sqlite_errstr), HasSubstr(error_message_column_query_failed))));
+  }
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, get_row_basic_db_types_fails_with_value_type_missmatch)
+{
+  using expected_row_type_list =
+      std::tuple<std::tuple<std::int64_t>, std::tuple<double>, std::tuple<std::string>, std::tuple<sqlite_wrapper::byte_vector>>;
+  expected_row_type_list expected_rows{};
+  // actual sqlite column type, expected sqlite column type
+  constexpr std::array<std::pair<int, int>, std::tuple_size_v<expected_row_type_list>> test_parameter_list{
+      {{SQLITE_FLOAT, SQLITE_INTEGER}, {SQLITE_TEXT, SQLITE_FLOAT}, {SQLITE_BLOB, SQLITE_TEXT}, {SQLITE_INTEGER, SQLITE_BLOB}}};
+
+  std::apply(
+      [&](const auto&... rows)
+      {
+        std::size_t index{0};
+
+        const auto test_implementation{
+            [&]<typename Row>(const Row&)
+            {
+              ::sqlite3 database{};
+              ::sqlite3_stmt statement{};
+              const Sequence sequence{};
+
+              EXPECT_CALL(*get_mock(), sqlite3_column_type(&statement, 0))
+                  .InSequence(sequence)
+                  .WillOnce(Return(test_parameter_list.at(index).first))
+                  .RetiresOnSaturation();
+
+              expect_sqlite_error_with_statement(&database, &statement, sequence, error_message_column_query_failed,
+                                                 SQLITE_MISMATCH);
+
+              ASSERT_THAT([&]() { (void)sqlite_wrapper::get_row<Row>(&statement); },
+                          ThrowsMessage<sqlite_wrapper::sqlite_error>(AllOf(
+                              StartsWith(sqlite_wrapper::format("column at index 0 has type {}, expected {}",
+                                                                test_parameter_list.at(index).first,
+                                                                test_parameter_list.at(index).second)),
+                              HasSubstr(dummy_sql), HasSubstr(sqlite_errstr), HasSubstr(error_message_column_query_failed))));
+            }};
+
+        ((test_implementation(rows), ++index), ...);
+      },
+      expected_rows);
 }
 
 // TODO: tests for other database base types and other containers/ranges
