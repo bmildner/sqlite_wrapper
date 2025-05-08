@@ -3,6 +3,7 @@
 project ("sqlite_wrapper" VERSION 1.0.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_EXTENSIONS OFF CACHE BOOL "Disable GNU language extensions")
 
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
 # we do need to add the SQLite3 include directory to some targets but do NOT want a real link dependency!
