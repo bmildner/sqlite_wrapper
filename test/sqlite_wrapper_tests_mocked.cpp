@@ -863,7 +863,7 @@ TEST_F(sqlite_wrapper_mocked_tests, get_row_basic_db_types_fails_with_value_type
 {
   using expected_row_type_list =
       std::tuple<std::tuple<std::int64_t>, std::tuple<double>, std::tuple<std::string>, std::tuple<sqlite_wrapper::byte_vector>>;
-  expected_row_type_list expected_rows{};
+  const expected_row_type_list expected_rows{};
   // actual sqlite column type, expected sqlite column type
   constexpr std::array<std::pair<int, int>, std::tuple_size_v<expected_row_type_list>> test_parameter_list{
       {{SQLITE_FLOAT, SQLITE_INTEGER}, {SQLITE_TEXT, SQLITE_FLOAT}, {SQLITE_BLOB, SQLITE_TEXT}, {SQLITE_INTEGER, SQLITE_BLOB}}};
