@@ -280,9 +280,13 @@ namespace sqlite_wrapper
   }
 
   template <row_type Row>
-  [[nodiscard]] auto get_rows(const stmt_with_location& stmt, std::size_t limit) -> std::vector<Row>
+  [[nodiscard]] auto get_rows(const stmt_with_location& stmt, std::size_t limit, std::size_t expected_minimum) -> std::vector<Row>
   {
     std::vector<Row> rows;
+    if (const auto new_capacity{std::min(expected_minimum, limit)}; new_capacity > 0)
+    {
+      rows.reserve(new_capacity);
+    }
 
     while ((rows.size() < limit) && step(stmt))
     {
@@ -290,6 +294,12 @@ namespace sqlite_wrapper
     }
 
     return rows;
+  }
+
+  template <row_type Row>
+  [[nodiscard]] auto get_rows(const stmt_with_location& stmt, std::size_t limit) -> std::vector<Row>
+  {
+    return get_rows<Row>(stmt, limit, 0);
   }
 
   template <row_type Row>
@@ -313,6 +323,7 @@ namespace sqlite_wrapper
   {
     const auto stmt{create_prepared_statement(database, sql, params...)};
 
+    // TODO: use get_rows<Row>(stmt, 1, 1) + check if step(stmt) is false!?
     const auto result{get_rows<Row>(stmt, 2)};
 
     if (const auto size{result.size()}; size != 1)
