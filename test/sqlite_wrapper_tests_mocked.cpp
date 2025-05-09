@@ -862,11 +862,20 @@ TEST_F(sqlite_wrapper_mocked_tests, get_row_basic_db_types_fails_with_null_value
 TEST_F(sqlite_wrapper_mocked_tests, get_row_basic_db_types_fails_with_value_type_missmatch)
 {
   using expected_row_type_list =
-      std::tuple<std::tuple<std::int64_t>, std::tuple<double>, std::tuple<std::string>, std::tuple<sqlite_wrapper::byte_vector>>;
+      std::tuple<std::tuple<std::int64_t>, std::tuple<double>, std::tuple<std::string>, std::tuple<sqlite_wrapper::byte_vector>,
+                 std::tuple<std::optional<std::int64_t>>, std::tuple<std::optional<double>>,
+                 std::tuple<std::optional<std::string>>, std::tuple<std::optional<sqlite_wrapper::byte_vector>>>;
   const expected_row_type_list expected_rows{};
   // actual sqlite column type, expected sqlite column type
   constexpr std::array<std::pair<int, int>, std::tuple_size_v<expected_row_type_list>> test_parameter_list{
-      {{SQLITE_FLOAT, SQLITE_INTEGER}, {SQLITE_TEXT, SQLITE_FLOAT}, {SQLITE_BLOB, SQLITE_TEXT}, {SQLITE_INTEGER, SQLITE_BLOB}}};
+      {{SQLITE_FLOAT, SQLITE_INTEGER},
+       {SQLITE_TEXT, SQLITE_FLOAT},
+       {SQLITE_BLOB, SQLITE_TEXT},
+       {SQLITE_INTEGER, SQLITE_BLOB},
+       {SQLITE_FLOAT, SQLITE_INTEGER},
+       {SQLITE_TEXT, SQLITE_FLOAT},
+       {SQLITE_BLOB, SQLITE_TEXT},
+       {SQLITE_INTEGER, SQLITE_BLOB}}};
 
   std::apply(
       [&](const auto&... rows)
@@ -899,6 +908,46 @@ TEST_F(sqlite_wrapper_mocked_tests, get_row_basic_db_types_fails_with_value_type
         ((test_implementation(rows), ++index), ...);
       },
       expected_rows);
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, get_row_for_string_fails_with_nullptr)
+{
+  ::sqlite3 database{};
+  ::sqlite3_stmt statement{};
+  const Sequence sequence{};
+
+  EXPECT_CALL(*get_mock(), sqlite3_column_type(&statement, 0)).InSequence(sequence).WillOnce(Return(SQLITE_TEXT));
+
+  EXPECT_CALL(*get_mock(), sqlite3_column_text(&statement, 0)).InSequence(sequence).WillOnce(Return(nullptr));
+
+  EXPECT_CALL(*get_mock(), sqlite3_column_bytes(&statement, 0)).InSequence(sequence).WillOnce(Return(0));
+
+  expect_sqlite_error_with_statement(&database, &statement, sequence, error_message_column_query_failed, SQLITE_NOMEM);
+
+  ASSERT_THAT([&]() { (void)sqlite_wrapper::get_row<std::tuple<std::string>>(&statement); },
+              ThrowsMessage<sqlite_wrapper::sqlite_error>(AllOf(StartsWith("sqlite3_column_text() for index 0 returned nullptr"),
+                                                                HasSubstr(dummy_sql), HasSubstr(sqlite_errstr),
+                                                                HasSubstr(error_message_column_query_failed))));
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, get_row_for_blob_fails_with_nullptr)
+{
+  ::sqlite3 database{};
+  ::sqlite3_stmt statement{};
+  const Sequence sequence{};
+
+  EXPECT_CALL(*get_mock(), sqlite3_column_type(&statement, 0)).InSequence(sequence).WillOnce(Return(SQLITE_BLOB));
+
+  EXPECT_CALL(*get_mock(), sqlite3_column_blob(&statement, 0)).InSequence(sequence).WillOnce(Return(nullptr));
+
+  EXPECT_CALL(*get_mock(), sqlite3_column_bytes(&statement, 0)).InSequence(sequence).WillOnce(Return(0));
+
+  expect_sqlite_error_with_statement(&database, &statement, sequence, error_message_column_query_failed, SQLITE_NOMEM);
+
+  ASSERT_THAT([&]() { (void)sqlite_wrapper::get_row<std::tuple<sqlite_wrapper::byte_vector>>(&statement); },
+              ThrowsMessage<sqlite_wrapper::sqlite_error>(AllOf(StartsWith("sqlite3_column_blob() for index 0 returned nullptr"),
+                                                                HasSubstr(dummy_sql), HasSubstr(sqlite_errstr),
+                                                                HasSubstr(error_message_column_query_failed))));
 }
 
 // TODO: tests for other database base types and other containers/ranges
