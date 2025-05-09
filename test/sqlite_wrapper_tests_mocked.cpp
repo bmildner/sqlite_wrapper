@@ -288,10 +288,9 @@ namespace
 
     template <sqlite_wrapper::row_type Row>
     static void expect_row(
-        ::sqlite3_stmt* stmt, const Row& expected_row,
+        ::sqlite3_stmt* stmt, const Row& expected_row, const Sequence& sequence,
         const force_null_array_type<Row>& force_null_array = fill_force_null_array<force_null_array_type<Row>>())
     {
-      const Sequence sequence;
       int index{0};
       bool was_force_null{false};
 
@@ -304,6 +303,16 @@ namespace
              ...);
           },
           expected_row);
+    }
+
+    template <sqlite_wrapper::row_type Row>
+    static void expect_row(
+        ::sqlite3_stmt* stmt, const Row& expected_row,
+        const force_null_array_type<Row>& force_null_array = fill_force_null_array<force_null_array_type<Row>>())
+    {
+      const Sequence sequence;
+
+      return expect_row(stmt, expected_row, sequence, force_null_array);
     }
 
     template <sqlite_wrapper::row_type Row>
@@ -738,6 +747,21 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_fails)
                   AllOf(StartsWith("failed to create prepared statement"), HasSubstr(dummy_sql), HasSubstr(sqlite_errstr))));
 }
 
+TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_failes_with_nullptr)
+{
+  ::sqlite3 database{};
+
+  EXPECT_CALL(*get_mock(),
+              sqlite3_prepare_v2(&database, StrEq(dummy_sql), static_cast<int>(dummy_sql.size()), NotNull(), IsNull()))
+      .WillOnce(DoAll(SetArgPointee<3>(nullptr), Return(SQLITE_OK)));
+
+  EXPECT_CALL(*get_mock(), sqlite3_errmsg(&database)).WillOnce(Return(sqlite_error_message));
+
+  ASSERT_THAT([&]() { (void)sqlite_wrapper::create_prepared_statement(&database, dummy_sql); },
+              ThrowsMessage<sqlite_wrapper::sqlite_error>(
+                  AllOf(StartsWith("failed to create prepared statement"), HasSubstr(dummy_sql))));
+}
+
 TEST_F(sqlite_wrapper_mocked_tests, bind_value_null_fails)
 {
   ::sqlite3 database{};
@@ -866,7 +890,7 @@ TEST_F(sqlite_wrapper_mocked_tests, get_row_basic_db_types_fails_with_value_type
                  std::tuple<std::optional<std::int64_t>>, std::tuple<std::optional<double>>,
                  std::tuple<std::optional<std::string>>, std::tuple<std::optional<sqlite_wrapper::byte_vector>>>;
   const expected_row_type_list expected_rows{};
-  // actual sqlite column type, expected sqlite column type
+  // {actual sqlite column type, expected sqlite column type}
   constexpr std::array<std::pair<int, int>, std::tuple_size_v<expected_row_type_list>> test_parameter_list{
       {{SQLITE_FLOAT, SQLITE_INTEGER},
        {SQLITE_TEXT, SQLITE_FLOAT},
@@ -948,6 +972,38 @@ TEST_F(sqlite_wrapper_mocked_tests, get_row_for_blob_fails_with_nullptr)
               ThrowsMessage<sqlite_wrapper::sqlite_error>(AllOf(StartsWith("sqlite3_column_blob() for index 0 returned nullptr"),
                                                                 HasSubstr(dummy_sql), HasSubstr(sqlite_errstr),
                                                                 HasSubstr(error_message_column_query_failed))));
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, get_rows_success)
+{
+  using row_type = std::tuple<std::int64_t, std::optional<double>, std::string, std::optional<sqlite_wrapper::byte_vector>>;
+
+  const std::vector<row_type> expected_rows{{4711, std::nullopt, "hello world 1", to_byte_vector("BLOB data")},
+                                            {4712, 3.41, "hello world 2", std::nullopt}};
+
+  ::sqlite3_stmt statement{};
+  const Sequence sequence{};
+
+  for (auto i = 0; i < 2; ++i)
+  {
+    for (const auto& row : expected_rows)
+    {
+      EXPECT_CALL(*get_mock(), sqlite3_step(&statement)).InSequence(sequence).WillOnce(Return(SQLITE_ROW)).RetiresOnSaturation();
+      expect_row(&statement, row, sequence);
+    }
+
+    EXPECT_CALL(*get_mock(), sqlite3_step(&statement)).InSequence(sequence).WillOnce(Return(SQLITE_DONE)).RetiresOnSaturation();
+  }
+
+  {
+    const auto rows{sqlite_wrapper::get_rows<row_type>(&statement)};
+    ASSERT_EQ(rows, expected_rows);
+  }
+  {
+    const auto rows{sqlite_wrapper::get_rows<row_type>(&statement, 3, 3)};
+    ASSERT_EQ(rows, expected_rows);
+    ASSERT_GE(rows.capacity(), 3);
+  }
 }
 
 // TODO: tests for other database base types and other containers/ranges
