@@ -65,7 +65,7 @@ int XXXmain()
 
     using row_type = std::tuple<std::optional<std::int64_t>, double, std::string, std::optional<sqlite_wrapper::byte_vector>>;
 
-    const auto rows = sqlite_wrapper::execute<row_type>(database.get(), sql, 0);
+    const auto rows = sqlite_wrapper::execute<row_type>(database.get(), sql);
 
     assert(rows.size() == 3);
     for (const auto& row : rows)
