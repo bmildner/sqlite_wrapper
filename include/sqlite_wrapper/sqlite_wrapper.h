@@ -222,6 +222,8 @@ namespace sqlite_wrapper
 
       (get_column(stmt, index++, columns), ...);
     }
+
+    SQLITE_WRAPPER_EXPORT void clear_bindings(const stmt_with_location& stmt);
   }  // namespace details
 
   /**
@@ -257,6 +259,15 @@ namespace sqlite_wrapper
     return open(file_name, open_flags::open_or_create, loc);
   }
 
+  /**
+   * Creates a new prepared statement and binds given parameters.
+   *
+   * @param database database handle
+   * @param sql SQL statement to prepare (can contain placeholders)
+   * @param params 0 to n parameters that are bound to the placeholders in \p sql
+   * @returns a prepared statement handle in a RAII guard
+   * @throws sqlite_error in case SQLite returns an error or an invalid handle
+   */
   [[nodiscard]] auto create_prepared_statement(const db_with_location& database, std::string_view sql, const binding_type auto&... params) -> statement
   {
     auto stmt{details::create_prepared_statement(database, sql)};
@@ -269,8 +280,40 @@ namespace sqlite_wrapper
     return stmt;
   }
 
+  /**
+   * Executes a prepared statement or advances to the next result row of one.
+   *
+   * @param stmt handle to the prepared statement
+   * @returns true if there is a result row, false if there is none
+   * @throws sqlite_error in case SQLite returns an error
+   */
   [[nodiscard]] SQLITE_WRAPPER_EXPORT auto step(const stmt_with_location& stmt) -> bool;
 
+  /**
+   * Resets a prepared statement so it can be executed agan with a call to \ref step or \ref get_rows
+   *
+   * @param stmt handle to the prepared statement
+   * @throws sqlite_error in case SQLite returns an error
+   */
+  SQLITE_WRAPPER_EXPORT void reset_prepared_statement(const stmt_with_location& stmt);
+
+  /**
+   * Resets a prepared statement and binds the parameters so it can be executed agan with a call to \ref step or \ref get_rows
+   *
+   * @param stmt handle to the prepared statement
+   * @param params 0 to n parameters that are bound to the placeholders in the SQL statement contained in \p stmt
+   * @throws sqlite_error in case SQLite returns an error
+   */
+  void reset_and_rebind_prepared_statement(const stmt_with_location& stmt, const binding_type auto&... params)
+  {
+    reset_prepared_statement(stmt);
+
+    details::clear_bindings(stmt);
+
+    [[maybe_unused]] int index{1};
+
+    (details::bind_value_and_increment_index(stmt, index, params), ...);
+  }
 
   template <row_type Row>
   [[nodiscard]] auto get_row(const stmt_with_location& stmt) -> Row

@@ -35,6 +35,9 @@ namespace sqlite_wrapper::mocks
     MOCK_METHOD(const unsigned char*, sqlite3_column_text, (sqlite3_stmt* pStmt, int iCol), (const));
     MOCK_METHOD(const void*, sqlite3_column_blob, (sqlite3_stmt* pStmt, int iCol), (const));
     MOCK_METHOD(double, sqlite3_column_double, (sqlite3_stmt* pStmt, int iCol), (const));
+
+    MOCK_METHOD(int, sqlite3_reset, (sqlite3_stmt *pStmt), (const));
+    MOCK_METHOD(int, sqlite3_clear_bindings, (sqlite3_stmt *pStmt), (const));
   };
 
 }  // namespace sqlite_wrapper::mocks

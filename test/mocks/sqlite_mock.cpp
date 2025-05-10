@@ -106,3 +106,13 @@ auto sqlite3_column_double(sqlite3_stmt* pStmt, int iCol) -> double
 {
   return get_global_mock<sqlite3_mock>()->sqlite3_column_double(pStmt, iCol);
 }
+
+auto sqlite3_reset(sqlite3_stmt *pStmt) -> int
+{
+  return get_global_mock<sqlite3_mock>()->sqlite3_reset(pStmt);
+}
+
+auto sqlite3_clear_bindings(sqlite3_stmt* pStmt) -> int
+{
+  return get_global_mock<sqlite3_mock>()->sqlite3_clear_bindings(pStmt);
+}

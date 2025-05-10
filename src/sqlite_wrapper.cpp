@@ -174,6 +174,16 @@ namespace sqlite_wrapper
 
       return true;
     }
+
+    void clear_bindings(const stmt_with_location& stmt)
+    {
+      const auto result{sqlite3_clear_bindings(stmt.value)};
+
+      if (result != SQLITE_OK)
+      {
+        throw sqlite_error("sqlite3_clear_bindings() failed", stmt, result);
+      }
+    }
   }  // namespace details
 
   auto open(const std::string& file_name, open_flags flags, const std::source_location& loc) -> database
@@ -226,4 +236,13 @@ namespace sqlite_wrapper
     return (result == SQLITE_ROW);
   }
 
+  void reset_prepared_statement(const stmt_with_location& stmt)
+  {
+    const auto result{sqlite3_reset(stmt.value)};
+
+    if (result != SQLITE_OK)
+    {
+      throw sqlite_error("sqlite3_reset() failed to reset statement", stmt, result);
+    }
+  }
 }  // namespace sqlite_wrapper
