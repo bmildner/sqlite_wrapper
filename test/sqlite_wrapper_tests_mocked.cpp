@@ -831,6 +831,65 @@ TEST_F(sqlite_wrapper_mocked_tests, step_fails)
                                                                 HasSubstr(sqlite_errstr), HasSubstr(error_message))));
 }
 
+TEST_F(sqlite_wrapper_mocked_tests, reset_and_rebind_prepared_statement_success)
+{
+  const auto blob{to_byte_vector("rebound BLOB data")};
+  constexpr auto* text{"rebound text"};
+  constexpr auto double_value{30.41};
+  constexpr auto int_value{4711};
+
+  ::sqlite3_stmt statement{};
+  const Sequence sequence{};
+
+  EXPECT_CALL(*get_mock(), sqlite3_reset(&statement)).InSequence(sequence).WillOnce(Return(SQLITE_OK));
+  EXPECT_CALL(*get_mock(), sqlite3_clear_bindings(&statement)).InSequence(sequence).WillOnce(Return(SQLITE_OK));
+
+  int index{1};
+
+  expect_blob_bind(blob)(&statement, index++, sequence, SQLITE_OK);
+  expect_text_bind(text)(&statement, index++, sequence, SQLITE_OK);
+  expect_double_bind(double_value)(&statement, index++, sequence, SQLITE_OK);
+  expect_int64_bind(int_value)(&statement, index++, sequence, SQLITE_OK);
+
+  sqlite_wrapper::reset_and_rebind_prepared_statement(&statement, blob, text, double_value, int_value);
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, reset_and_rebind_prepared_statement_fails)
+{
+  constexpr auto* error_message{"clear bindings failed"};
+
+  ::sqlite3 database{};
+  ::sqlite3_stmt statement{};
+  const Sequence sequence{};
+
+  EXPECT_CALL(*get_mock(), sqlite3_reset(&statement)).InSequence(sequence).WillOnce(Return(SQLITE_OK));
+  EXPECT_CALL(*get_mock(), sqlite3_clear_bindings(&statement)).InSequence(sequence).WillOnce(Return(SQLITE_MISUSE));
+
+  expect_sqlite_error_with_statement(&database, &statement, sequence, error_message);
+
+  ASSERT_THAT(
+      [&]() { sqlite_wrapper::reset_and_rebind_prepared_statement(&statement, 4711); },
+      ThrowsMessage<sqlite_wrapper::sqlite_error>(AllOf(StartsWith("sqlite3_clear_bindings() failed"), HasSubstr(dummy_sql),
+                                                        HasSubstr(sqlite_errstr), HasSubstr(error_message))));
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, reset_prepared_statement_fails)
+{
+  constexpr auto* error_message{"reset prepared statement failed"};
+
+  ::sqlite3 database{};
+  ::sqlite3_stmt statement{};
+  const Sequence sequence{};
+
+  EXPECT_CALL(*get_mock(), sqlite3_reset(&statement)).InSequence(sequence).WillOnce(Return(SQLITE_MISUSE));
+  expect_sqlite_error_with_statement(&database, &statement, sequence, error_message);
+
+  ASSERT_THAT([&]() { sqlite_wrapper::reset_prepared_statement(&statement); },
+              ThrowsMessage<sqlite_wrapper::sqlite_error>(AllOf(StartsWith("sqlite3_reset() failed to reset statement"),
+                                                                HasSubstr(dummy_sql), HasSubstr(sqlite_errstr),
+                                                                HasSubstr(error_message))));
+}
+
 TEST_F(sqlite_wrapper_mocked_tests, get_row_basic_db_types_success)
 {
   using row_type = std::tuple<std::int64_t, double, std::string, sqlite_wrapper::byte_vector>;
