@@ -328,6 +328,9 @@ namespace
       ASSERT_EQ(row, expected_row);
     }
 
+    static void expect_statement(const sqlite_wrapper::db_with_location& database, ::sqlite3_stmt& statement,
+                                 const Sequence& sequence, std::string_view sql, const expect_bind_list& binders);
+
     template <typename... Params>
     static auto expect_and_get_statement(const sqlite_wrapper::db_with_location& database, ::sqlite3_stmt& statement,
                                          const expect_bind_list& binders, Params&&... params) -> sqlite_wrapper::statement;
@@ -384,16 +387,11 @@ namespace
     EXPECT_CALL(*get_mock(), sqlite3_close(Eq(&database))).WillOnce(Return(SQLITE_OK)).RetiresOnSaturation();
   }
 
-  template <typename... Params>
-  auto sqlite_wrapper_mocked_tests::expect_and_get_statement(const sqlite_wrapper::db_with_location& database,
-                                                             ::sqlite3_stmt& statement, const expect_bind_list& binders,
-                                                             Params&&... params) -> sqlite_wrapper::statement
+  void sqlite_wrapper_mocked_tests::expect_statement(const sqlite_wrapper::db_with_location& database, ::sqlite3_stmt& statement,
+                                                     const Sequence& sequence, std::string_view sql,
+                                                     const expect_bind_list& binders)
   {
-    // make sure mocks are called in the correct order!
-    const Sequence sequence{};
-
-    EXPECT_CALL(*get_mock(),
-                sqlite3_prepare_v2(database.value, StrEq(dummy_sql), static_cast<int>(dummy_sql.size()), NotNull(), IsNull()))
+    EXPECT_CALL(*get_mock(), sqlite3_prepare_v2(database.value, StrEq(sql), static_cast<int>(sql.size()), NotNull(), IsNull()))
         .InSequence(sequence)
         .WillOnce(DoAll(SetArgPointee<3>(&statement), Return(SQLITE_OK)))
         .RetiresOnSaturation();
@@ -404,6 +402,17 @@ namespace
     {
       binder(&statement, index++, sequence, SQLITE_OK);
     }
+  }
+
+  template <typename... Params>
+  auto sqlite_wrapper_mocked_tests::expect_and_get_statement(const sqlite_wrapper::db_with_location& database,
+                                                             ::sqlite3_stmt& statement, const expect_bind_list& binders,
+                                                             Params&&... params) -> sqlite_wrapper::statement
+  {
+    // make sure mocks are called in the correct order!
+    const Sequence sequence{};
+
+    expect_statement(database, statement, sequence, dummy_sql, binders);
 
     EXPECT_CALL(*get_mock(), sqlite3_finalize(&statement)).InSequence(sequence).WillOnce(Return(SQLITE_OK)).RetiresOnSaturation();
 
@@ -1063,6 +1072,50 @@ TEST_F(sqlite_wrapper_mocked_tests, get_rows_success)
     ASSERT_EQ(rows, expected_rows);
     ASSERT_GE(rows.capacity(), 3);
   }
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, execute_no_data_success)
+{
+  constexpr auto int_val{4711};
+  constexpr auto double_val{4711.1};
+
+  ::sqlite3 database{};
+  ::sqlite3_stmt statement{};
+  const Sequence sequence{};
+
+  expect_bind_list binder;
+  binder.reserve(2);
+  binder.push_back(expect_int64_bind(int_val));
+  binder.push_back(expect_double_bind(double_val));
+
+  expect_statement(&database, statement, sequence, dummy_sql, binder);
+
+  EXPECT_CALL(*get_mock(), sqlite3_step(&statement)).InSequence(sequence).WillOnce(Return(SQLITE_DONE));
+  EXPECT_CALL(*get_mock(), sqlite3_finalize(&statement)).InSequence(sequence).WillOnce(Return(SQLITE_OK));
+
+  sqlite_wrapper::execute_no_data(&database, dummy_sql, int_val, double_val);
+}
+
+TEST_F(sqlite_wrapper_mocked_tests, execute_no_data_fails_with_data_row)
+{
+  constexpr auto* error_message{"execute_no_data failed"};
+
+  ::sqlite3 database{};
+  ::sqlite3_stmt statement{};
+  const Sequence sequence{};
+
+  expect_statement(&database, statement, sequence, dummy_sql, {});
+
+  EXPECT_CALL(*get_mock(), sqlite3_step(&statement)).InSequence(sequence).WillOnce(Return(SQLITE_ROW));
+  EXPECT_CALL(*get_mock(), sqlite3_sql(&statement)).InSequence(sequence).WillOnce(Return(dummy_sql_str.c_str()));
+  EXPECT_CALL(*get_mock(), sqlite3_db_handle(&statement)).InSequence(sequence).WillOnce(Return(&database));
+  EXPECT_CALL(*get_mock(), sqlite3_errmsg(&database)).InSequence(sequence).WillOnce(Return(error_message));
+  EXPECT_CALL(*get_mock(), sqlite3_finalize(&statement)).InSequence(sequence).WillOnce(Return(SQLITE_OK));
+
+  ASSERT_THAT(
+      [&]() { sqlite_wrapper::execute_no_data(&database, dummy_sql); },
+      ThrowsMessage<sqlite_wrapper::sqlite_error>(AllOf(
+          StartsWith("unexpected data row in execute_no_data(), failed with: execute_no_data failed"), HasSubstr(dummy_sql))));
 }
 
 // TODO: tests for other database base types and other containers/ranges
