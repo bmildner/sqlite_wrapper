@@ -28,6 +28,7 @@ else()
 
   if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(common_target_settings INTERFACE -D_FORTIFY_SOURCE=1)
+    target_compile_options(common_target_settings INTERFACE -D_GLIBCXX_ASSERTIONS)
 
     if (GCOVR)
       target_compile_options(common_target_settings INTERFACE --coverage -g -O0)
