@@ -1,6 +1,6 @@
 #include "assert_throw_with_msg.h"
 
-#ifdef __GNUC__
+#if (defined(__GNUC__) || defined(__clang__)) && __has_include(<cxxabi.h>)
 #  include <cstdlib>
 #  include <memory>
 #  include <string>
@@ -24,11 +24,16 @@ namespace sqlite_wrapper::details
 
   auto demangle(const char* name) -> std::string
   {
+    if (name == nullptr)
+    {
+      return {};
+    }
+
     int status{0};
 
     const c_str_ptr demangled_str{abi::__cxa_demangle(name, nullptr, nullptr, &status)};
 
-    if ((status != 0) || (!demangled_str))
+    if ((status != 0) || !demangled_str)
     {
       return {name};
     }
