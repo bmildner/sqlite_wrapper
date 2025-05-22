@@ -47,6 +47,11 @@ namespace sqlite_wrapper::details
 {
   auto demangle(const char* name) -> std::string
   {
+    if (name == nullptr)
+    {
+      return {};
+    }
+
     return {name};
   }
 }  // namespace sqlite_wrapper::details

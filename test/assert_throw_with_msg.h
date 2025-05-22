@@ -13,6 +13,13 @@
 
 namespace sqlite_wrapper::details
 {
+  /**
+   * Demangle typenames returned from typeid(...).name()/std::type_info.name() if needed.
+   * Simply returns \p name if compiler returns already demangled name.
+   *
+   * @param name (mangled) name returned by std::type_info.name()
+   * @return demangled name, returns \p name if demangle failed or {} if name is a nullptr
+   */
   [[nodiscard]] auto demangle(const char* name) -> std::string;
 
   template <typename ExpectedException, std::invocable Statement>
