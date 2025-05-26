@@ -1,11 +1,11 @@
-#include "assert_throw_with_msg.h"
+#include "assert_throws_with_msg.h"
 
-#if (defined(__GNUC__) || defined(__clang__)) && __has_include(<cxxabi.h>)
+#if __has_include(<cxxabi.h>)
+#  include <cxxabi.h>
+
 #  include <cstdlib>
 #  include <memory>
 #  include <string>
-
-#  include <cxxabi.h>
 
 namespace
 {
@@ -43,6 +43,7 @@ namespace sqlite_wrapper::details
 }  // namespace sqlite_wrapper::details
 
 #else
+
 namespace sqlite_wrapper::details
 {
   auto demangle(const char* name) -> std::string
@@ -55,4 +56,5 @@ namespace sqlite_wrapper::details
     return {name};
   }
 }  // namespace sqlite_wrapper::details
+
 #endif

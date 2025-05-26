@@ -23,9 +23,9 @@ namespace sqlite_wrapper::details
   [[nodiscard]] auto demangle(const char* name) -> std::string;
 
   template <typename ExpectedException, std::invocable Statement>
-  [[nodiscard]] auto assert_throw_with_msg(Statement statement, std::string_view statement_as_text,
-                                           std::optional<std::string>& what,
-                                           const std::source_location& location = std::source_location::current())
+  void assert_throws_with_msg(Statement statement, std::string_view statement_as_text,
+                                            std::optional<std::string>& what,
+                                            const std::source_location& location = std::source_location::current())
   {
     const auto line_number{static_cast<int>(location.line())};
     what.reset();
@@ -68,18 +68,29 @@ namespace sqlite_wrapper::details
   }
 }  // namespace sqlite_wrapper::details
 
-// NOLINTNEXTLINE(*-macro-usage)
-#define ASSERT_THROW_WITH_MSG2(statement, expected_exception, matcher)                                         \
-  {                                                                                                            \
-    std::optional<std::string> what;                                                                           \
-    if (sqlite_wrapper::details::assert_throw_with_msg<expected_exception>(statement, #statement, what); what) \
-    {                                                                                                          \
-      ASSERT_THAT(what.value(), matcher);                                                                      \
-    }                                                                                                          \
+/**
+ *  Replacement for ASSERT_THAT() with ThrowsMessage<>.
+ *  Advantages:
+ *    Does not execute \p statement a second time in case something fails (like an message matcher) and cause numerous unexpected
+ *    calls to mocked functions.
+ *    The given \p expected_exception must match exactly, can not be something derived from it.
+ *    Has only a thin macro wrapper, mostly implemented as a template function.
+ *
+ * @param statement something that fulfills the std::invocable concept
+ * @param expected_exception exact type of exception that is expected to be thrown by std::invoke(statement)
+ * @param matcher any gtest matcher that can be used with an std::string to validate the .what() of \p expected_exception
+ */
+#define ASSERT_THROWS_WITH_MSG(statement, expected_exception, matcher)  /* NOLINT(*-macro-usage) */             \
+  {                                                                                                             \
+    std::optional<std::string> what;                                                                            \
+    if (sqlite_wrapper::details::assert_throws_with_msg<expected_exception>(statement, #statement, what); what) \
+    {                                                                                                           \
+      ASSERT_THAT(what.value(), matcher);                                                                       \
+    }                                                                                                           \
   }
 
 // NOLINTNEXTLINE(*-macro-usage)
-#define ASSERT_THROW_WITH_MSG(statement, expected_exception, matcher)                             \
+#define ASSERT_THROWS_WITH_MSG_OLD(statement, expected_exception, matcher)                        \
   try                                                                                             \
   {                                                                                               \
     statement;                                                                                    \
