@@ -1,3 +1,5 @@
+#include "assert_throws_with_msg.h"
+
 #include "sqlite_wrapper/sqlite_error.h"
 #include "sqlite_wrapper/sqlite_wrapper.h"
 
@@ -11,7 +13,6 @@ using ::testing::AllOf;
 using ::testing::HasSubstr;
 using ::testing::StartsWith;
 using ::testing::Test;
-using ::testing::ThrowsMessage;
 
 namespace
 {
@@ -67,13 +68,13 @@ TEST_F(sqlite_wrapper_tests, open_failes)
 {
   std::source_location location{};
 
-  ASSERT_THAT(
+  ASSERT_THROWS_WITH_MSG(
       [&]
       {
         location = std::source_location::current();
         (void)sqlite_wrapper::open(temp_db_file_name.string(), sqlite_wrapper::open_flags::open_only);
       },
-      ThrowsMessage<sqlite_wrapper::sqlite_error>(
-          AllOf(StartsWith("sqlite3_open() failed to open database"), HasSubstr("failed with: unable to open database file"),
-                HasSubstr(temp_db_file_name.string()), HasSubstr(location.file_name()), HasSubstr(location.function_name()))));
+      sqlite_wrapper::sqlite_error,
+      AllOf(StartsWith("sqlite3_open() failed to open database"), HasSubstr("failed with: unable to open database file"),
+            HasSubstr(temp_db_file_name.string()), HasSubstr(location.file_name()), HasSubstr(location.function_name())));
 }
