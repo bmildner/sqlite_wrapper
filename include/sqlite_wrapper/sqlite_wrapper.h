@@ -397,7 +397,7 @@ namespace sqlite_wrapper
   };
 
   template <row_type Row>
-  [[nodiscard]] auto execute(const db_with_location& database, std::string_view sql, const row_limit& limit, const binding_type auto&... params) -> std::vector<Row>
+  [[nodiscard]] auto execute(const db_with_location& database, const row_limit& limit, std::string_view sql, const binding_type auto&... params) -> std::vector<Row>
   {
     const auto stmt{create_prepared_statement(database, sql, params...)};
 
@@ -407,7 +407,7 @@ namespace sqlite_wrapper
   template <row_type Row>
   [[nodiscard]] auto execute(const db_with_location& database, std::string_view sql, const binding_type auto&... params) -> std::vector<Row>
   {
-    return execute<Row>(database, sql, row_limit{}, params...);
+    return execute<Row>(database, row_limit{}, sql, params...);
   }
 }  // namespace sqlite_wrapper
 
