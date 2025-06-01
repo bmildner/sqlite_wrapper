@@ -1,5 +1,6 @@
 #include "assert_throws_with_msg.h"
 
+#include "sqlite_wrapper/format.h"
 #include "sqlite_wrapper/sqlite_error.h"
 #include "sqlite_wrapper/sqlite_wrapper.h"
 
@@ -77,4 +78,34 @@ TEST_F(sqlite_wrapper_tests, open_failes)
       sqlite_wrapper::sqlite_error,
       AllOf(StartsWith("sqlite3_open() failed to open database"), HasSubstr("failed with: unable to open database file"),
             HasSubstr(temp_db_file_name.string()), HasSubstr(location.file_name()), HasSubstr(location.function_name())));
+}
+
+TEST_F(sqlite_wrapper_tests, open_failes_get_location)
+{
+  std::source_location location{};
+
+  try
+  {
+    location = std::source_location::current();
+    (void)sqlite_wrapper::open(temp_db_file_name.string(), sqlite_wrapper::open_flags::open_only);
+  }
+  catch (const sqlite_wrapper::sqlite_error& error)
+  {
+    const auto error_location{error.where()};
+
+    ASSERT_EQ(location.file_name(), error_location.file_name());
+    ASSERT_EQ(location.function_name(), error_location.function_name());
+    ASSERT_EQ(location.line() + 1, error_location.line());
+
+    return;
+  }
+  FAIL() << "Did not catch sqlite_wrapper::sqlite_error as expected";
+}
+
+TEST_F(sqlite_wrapper_tests, open_flags_formating)
+{
+  ASSERT_EQ(sqlite_wrapper::format("{}", sqlite_wrapper::open_flags::open_only), "open_only");
+  ASSERT_EQ(sqlite_wrapper::format("{}", sqlite_wrapper::open_flags::open_or_create), "open_or_create");
+  // NOLINTNEXTLINE(*.EnumCastOutOfRange)
+  ASSERT_EQ(sqlite_wrapper::format("{}", static_cast<sqlite_wrapper::open_flags>(999)), "<unknown (999)>");
 }
