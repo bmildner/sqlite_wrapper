@@ -657,12 +657,12 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_range_binding_null
 
   expect_bind_list expected_binder;
 
-  for (size_t i = 0; i < vector_nullptr.size(); i++)
+  for (std::size_t i = 0; i < vector_nullptr.size(); i++)
   {
     expected_binder.push_back(expect_null_bind());
   }
 
-  for (size_t i = 0; i < array_nullopt.size(); i++)
+  for (std::size_t i = 0; i < array_nullopt.size(); i++)
   {
     expected_binder.push_back(expect_null_bind());
   }
@@ -1113,4 +1113,62 @@ TEST_F(sqlite_wrapper_mocked_tests, execute_no_data_fails_with_data_row)
       AllOf(StartsWith("unexpected data row in execute_no_data(), failed with: execute_no_data failed"), HasSubstr(dummy_sql)));
 }
 
-// TODO: tests for other database base types and other containers/ranges
+TEST_F(sqlite_wrapper_mocked_tests, execute_with_and_wo_limits_success)
+{
+  using row_type = std::tuple<std::int64_t, std::optional<double>, std::string, std::optional<sqlite_wrapper::byte_vector>>;
+
+  const std::vector<row_type> expected_rows{{4711, std::nullopt, "hello world 1", to_byte_vector("BLOB data")},
+                                            {4712, 3.41, "hello world 2", std::nullopt}};
+  ::sqlite3 database{};
+  ::sqlite3_stmt statement{};
+  const Sequence sequence{};
+
+  const auto expect{[&](size_t limit, bool peek_ahead = false)
+                    {
+                      ASSERT_LE(limit, expected_rows.size());
+
+                      // NOLINTNEXTLINE(*.NonNullParamChecker) false-positive?
+                      expect_statement(&database, statement, sequence, dummy_sql, {});
+
+                      for (const auto& row : expected_rows | std::views::take(limit))
+                      {
+                        EXPECT_CALL(*get_mock(), sqlite3_step(&statement))
+                            .InSequence(sequence)
+                            .WillOnce(Return(SQLITE_ROW))
+                            .RetiresOnSaturation();
+                        expect_row(&statement, row, sequence);
+                      }
+
+                      if (peek_ahead)
+                      {
+                        EXPECT_CALL(*get_mock(), sqlite3_step(&statement))
+                            .InSequence(sequence)
+                            .WillOnce(Return(SQLITE_DONE))
+                            .RetiresOnSaturation();
+                      }
+
+                      EXPECT_CALL(*get_mock(), sqlite3_finalize(&statement))
+                          .InSequence(sequence)
+                          .WillOnce(Return(SQLITE_OK))
+                          .RetiresOnSaturation();
+                    }};
+
+  for (const auto limit : {expected_rows.size(), expected_rows.size() - 1U})
+  {
+    expect(limit);
+    const auto result_rows{sqlite_wrapper::execute<row_type>(&database, {limit, 1}, dummy_sql)};
+    ASSERT_EQ(result_rows.size(), limit);
+    for (size_t i = 0; i < limit; ++i)
+    {
+      ASSERT_EQ(result_rows[i], expected_rows[i]);
+    }
+  }
+
+  expect(expected_rows.size(), true);
+  const auto result_rows{sqlite_wrapper::execute<row_type>(&database, dummy_sql)};
+  ASSERT_EQ(result_rows.size(), expected_rows.size());
+  for (size_t i = 0; i < expected_rows.size(); ++i)
+  {
+    ASSERT_EQ(result_rows[i], expected_rows[i]);
+  }
+}
