@@ -93,8 +93,8 @@ TEST_F(sqlite_wrapper_tests, open_failes_get_location)
   {
     const auto error_location{error.where()};
 
-    ASSERT_EQ(location.file_name(), error_location.file_name());
-    ASSERT_EQ(location.function_name(), error_location.function_name());
+    ASSERT_STREQ(location.file_name(), error_location.file_name());
+    ASSERT_STREQ(location.function_name(), error_location.function_name());
     ASSERT_EQ(location.line() + 1, error_location.line());
 
     return;
