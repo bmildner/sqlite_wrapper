@@ -14,7 +14,7 @@ find_package(GTest CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE BOOL "Export compile commands for clang tools." FORCE)
-set(CMAKE_CXX_SCAN_FOR_MODULES OFF CACHE BOOL "Disable C++ Modules" FORCE)
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF CACHE BOOL "Disable C++ Modules." FORCE)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin CACHE PATH "Directory where executables are dumped." FORCE)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib CACHE PATH "Directory where shared objects are dumped." FORCE)
@@ -25,7 +25,7 @@ set(CMAKE_COMPILE_WARNING_AS_ERROR ON CACHE BOOL "Treat all warnings as errors."
 # enable mold linker if found
 find_program(MOLD_FOUND mold)
 if (MOLD_FOUND)
-  set(CMAKE_LINKER_TYPE MOLD CACHE STRING "Path and name of mold" FORCE)
+  set(CMAKE_LINKER_TYPE MOLD CACHE STRING "Path and name of mold." FORCE)
 endif()
 
 # enable ccache if found
@@ -41,7 +41,7 @@ if (NOT (CMAKE_BUILD_TYPE STREQUAL "Debug"))
   check_ipo_supported(RESULT LTO_SUPPORTED)
 
   if (LTO_SUPPORTED)
-    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON CACHE BOOL "Enable IPO/LTO" FORCE)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON CACHE BOOL "Enable IPO/LTO." FORCE)
   endif()
 endif()
 
