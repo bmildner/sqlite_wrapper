@@ -1,8 +1,8 @@
-﻿cmake_minimum_required (VERSION 3.20)
+﻿cmake_minimum_required (VERSION 3.30)
 
 project ("sqlite_wrapper" VERSION 1.0.0 LANGUAGES C CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_EXTENSIONS OFF CACHE BOOL "Disable GNU language extensions")
 
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
@@ -14,6 +14,7 @@ find_package(GTest CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE BOOL "Export compile commands for clang tools." FORCE)
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF CACHE BOOL "Disable C++ Modules" FORCE)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin CACHE PATH "Directory where executables are dumped." FORCE)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib CACHE PATH "Directory where shared objects are dumped." FORCE)
@@ -21,7 +22,13 @@ set(CMAKE_BUILD_RPATH ../lib CACHE PATH "Path where executables should look for 
 
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON CACHE BOOL "Treat all warnings as errors." FORCE)
 
-#enable ccache if found
+# enable mold linker if found
+find_program(MOLD_FOUND mold)
+if (MOLD_FOUND)
+  set(CMAKE_LINKER_TYPE MOLD CACHE STRING "Path and name of mold" FORCE)
+endif()
+
+# enable ccache if found
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
   set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE_FOUND} CACHE PATH "Path and name of ccache." FORCE)
