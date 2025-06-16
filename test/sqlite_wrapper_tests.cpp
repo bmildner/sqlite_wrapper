@@ -1,6 +1,7 @@
 #include "assert_throws_with_msg.h"
 
 #include "sqlite_wrapper/format.h"
+#include "sqlite_wrapper/raii.h"
 #include "sqlite_wrapper/sqlite_error.h"
 #include "sqlite_wrapper/sqlite_wrapper.h"
 
@@ -34,6 +35,8 @@ namespace
     void SetUp() override;
 
     void TearDown() override;
+
+    [[nodiscard]] static auto SetUpDatabase() -> sqlite_wrapper::database;
   };
 
   sqlite_wrapper_tests::sqlite_wrapper_tests() = default;
@@ -49,6 +52,14 @@ namespace
     std::filesystem::remove(temp_db_file_name);
   }
 
+  auto sqlite_wrapper_tests::SetUpDatabase() -> ::sqlite_wrapper::database
+  {
+    auto database{sqlite_wrapper::open(temp_db_file_name.string())};
+
+    EXPECT_NE(database.get(), nullptr);
+
+    return database;
+  }
 }  // unnamed namespace
 
 TEST_F(sqlite_wrapper_tests, open)
@@ -108,4 +119,11 @@ TEST_F(sqlite_wrapper_tests, open_flags_formating)
   ASSERT_EQ(sqlite_wrapper::format("{}", sqlite_wrapper::open_flags::open_or_create), "open_or_create");
   // NOLINTNEXTLINE(*.EnumCastOutOfRange)
   ASSERT_EQ(sqlite_wrapper::format("{}", static_cast<sqlite_wrapper::open_flags>(999)), "<unknown (999)>");
+}
+
+TEST_F(sqlite_wrapper_tests, database_query)
+{
+  const auto database{SetUpDatabase()};
+
+
 }
