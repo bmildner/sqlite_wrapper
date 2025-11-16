@@ -36,7 +36,7 @@ namespace
 
     void TearDown() override;
 
-    [[nodiscard]] static auto SetUpDatabase() -> sqlite_wrapper::database;
+    [[nodiscard]] static auto setUpDatabase() -> sqlite_wrapper::database;
   };
 
   sqlite_wrapper_tests::sqlite_wrapper_tests() = default;
@@ -52,11 +52,11 @@ namespace
     std::filesystem::remove(temp_db_file_name);
   }
 
-  auto sqlite_wrapper_tests::SetUpDatabase() -> ::sqlite_wrapper::database
+  auto sqlite_wrapper_tests::setUpDatabase() -> ::sqlite_wrapper::database
   {
     auto database{sqlite_wrapper::open(temp_db_file_name.string())};
 
-    EXPECT_NE(database.get(), nullptr);
+    EXPECT_NE(database.get(), nullptr) << "Expected non-null database handle!";
 
     return database;
   }
@@ -123,7 +123,7 @@ TEST_F(sqlite_wrapper_tests, open_flags_formating)
 
 TEST_F(sqlite_wrapper_tests, database_query)
 {
-  const auto database{SetUpDatabase()};
+  const auto database{setUpDatabase()};
 
 
 }
