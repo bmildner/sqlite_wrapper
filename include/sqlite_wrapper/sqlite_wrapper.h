@@ -4,7 +4,6 @@
 #include "sqlite_wrapper/format.h"
 #include "sqlite_wrapper/raii.h"
 #include "sqlite_wrapper/sqlite_error.h"
-#include "sqlite_wrapper/with_location.h"
 
 #include <algorithm>
 #include <concepts>
