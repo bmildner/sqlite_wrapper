@@ -26,6 +26,7 @@ set(CMAKE_COMPILE_WARNING_AS_ERROR ON CACHE BOOL "Treat all warnings as errors."
 find_program(MOLD_FOUND mold)
 if (MOLD_FOUND)
   set(CMAKE_LINKER_TYPE MOLD CACHE STRING "Path and name of mold." FORCE)
+  message(STATUS "Using mold linker ...")
 endif()
 
 # enable ccache if found
