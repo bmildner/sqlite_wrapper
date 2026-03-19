@@ -10,26 +10,28 @@
         "create_table.cpp"
         "../include/sqlite_wrapper/config.h")
 
-add_library(sqlite_wrapper SHARED ${SRC})
+add_library(sqlite_wrapper.sqlite_wrapper SHARED ${SRC})
+add_library(sqlite_wrapper::sqlite_wrapper ALIAS sqlite_wrapper.sqlite_wrapper)
 
-target_include_directories(sqlite_wrapper PUBLIC "../include")
+target_include_directories(sqlite_wrapper.sqlite_wrapper PUBLIC "../include")
 
 # enable automatic export and import of symbols
-target_compile_definitions(sqlite_wrapper PUBLIC SQLITE_WRAPPER_SHARED)
+target_compile_definitions(sqlite_wrapper.sqlite_wrapper PUBLIC SQLITE_WRAPPER_SHARED)
 
-target_link_libraries(sqlite_wrapper PRIVATE common_target_settings unofficial::sqlite3::sqlite3)
+target_link_libraries(sqlite_wrapper.sqlite_wrapper PRIVATE common_target_settings unofficial::sqlite3::sqlite3)
 
 # -------
 
-add_library(sqlite_wrapper_static STATIC ${SRC})
+add_library(sqlite_wrapper.sqlite_wrapper_static STATIC ${SRC})
+add_library(sqlite_wrapper::sqlite_wrapper_static ALIAS sqlite_wrapper::sqlite_wrapper_static)
 
-target_include_directories(sqlite_wrapper_static PUBLIC "../include")
+target_include_directories(sqlite_wrapper.sqlite_wrapper_static PUBLIC "../include")
 
-target_link_libraries(sqlite_wrapper_static PRIVATE common_target_settings)
+target_link_libraries(sqlite_wrapper.sqlite_wrapper_static PRIVATE common_target_settings)
 
-target_include_directories(sqlite_wrapper_static PRIVATE ${SQLITE3_INCLUDES})
+target_include_directories(sqlite_wrapper.sqlite_wrapper_static PRIVATE ${SQLITE3_INCLUDES})
 
 if (DEFINED MSVC)
   # this might prevent dynamic linking to SQLite on Windows due to name prefix of DLLImport symbols ...
-  target_compile_definitions(sqlite_wrapper_static PRIVATE SQLITE_API=)
+  target_compile_definitions(sqlite_wrapper.sqlite_wrapper_static PRIVATE SQLITE_API=)
 endif ()

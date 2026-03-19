@@ -41,9 +41,10 @@ else ()
   set(DOXYGEN_WARN_AS_ERROR          YES)
   set(DOXYGEN_QUIET                  YES)
 
-  doxygen_add_docs(build_documentation
+  doxygen_add_docs(sqlite_wrapper.build_documentation
       ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/docs
       ALL
       COMMENT "Generate HTML documentation"
   )
+
 endif ()

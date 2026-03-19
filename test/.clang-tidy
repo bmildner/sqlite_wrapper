@@ -1,7 +1,6 @@
 ---
 Checks: '-modernize-use-trailing-return-type,
-  -cppcoreguidelines-special-member-functions,
-  -hicpp-special-member-functions,
+  -*-special-member-functions,
   -readability-function-cognitive-complexity,
   -*-magic-numbers'
 InheritParentConfig: true

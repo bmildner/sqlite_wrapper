@@ -27,11 +27,14 @@ namespace sqlite_wrapper
   using byte_vector = std::vector<std::byte>;
   using const_byte_span = std::span<const std::byte>;
 
+  template <typename T, typename U, typename... V>
+  concept same_as = std::same_as<T, U> || (std::same_as<T, V> || ...);
+
   /**
    * Basic types that con be queried from the database.
    */
   template <typename T>
-  concept basic_database_type = std::same_as<std::int64_t, T> || std::same_as<double, T> || std::same_as<std::string, T> || std::same_as<byte_vector, T>;
+  concept basic_database_type = same_as<T, std::int64_t, double, std::string, byte_vector>;
 
   /**
    * Optional versions of basic types that con be queried from the database.
@@ -73,7 +76,7 @@ namespace sqlite_wrapper
    * Null like types that can be bound to a parameter in a database query.
    */
   template <typename T>
-  concept null_binding_type = std::same_as<T, std::nullptr_t> || std::same_as<T, std::nullopt_t>;
+  concept null_binding_type = same_as<T, std::nullptr_t, std::nullopt_t>;
 
   /**
    * Basic types that can be bound to a parameter in a database query.
@@ -166,6 +169,7 @@ namespace sqlite_wrapper
       bind_value(stmt, index);
     }
 
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     void bind_value(const stmt_with_location& stmt, int index, const optional_binding_type auto& param)
     {
       if (param.has_value())
@@ -218,7 +222,8 @@ namespace sqlite_wrapper
       requires(sizeof...(Columns) >= 1)
     void get_row(const stmt_with_location& stmt, Columns&... columns)
     {
-      int index{0};
+      // NOLINTNEXTLINE(misc-const-correctness)
+      [[maybe_unused]] int index{0};
 
       (get_column(stmt, index++, columns), ...);
     }
@@ -310,6 +315,7 @@ namespace sqlite_wrapper
 
     details::clear_bindings(stmt);
 
+    // NOLINTNEXTLINE(misc-const-correctness)
     [[maybe_unused]] int index{1};
 
     (details::bind_value_and_increment_index(stmt, index, params), ...);
