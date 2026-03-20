@@ -27,7 +27,9 @@ target_link_libraries(sqlite_wrapper.sqlite_wrapper PRIVATE common_target_settin
 add_library(sqlite_wrapper.sqlite_wrapper_static STATIC ${SRC})
 add_library(sqlite_wrapper::sqlite_wrapper_static ALIAS sqlite_wrapper.sqlite_wrapper_static)
 
-set_target_properties(sqlite_wrapper.sqlite_wrapper_static PROPERTIES OUTPUT_NAME "sqlite_wrapper_static")
+set_target_properties(sqlite_wrapper.sqlite_wrapper_static PROPERTIES
+    OUTPUT_NAME "sqlite_wrapper_static"
+    CXX_CLANG_TIDY "") # disable clang-tidy for static library to speed up build
 
 target_include_directories(sqlite_wrapper.sqlite_wrapper_static PUBLIC "../include")
 
