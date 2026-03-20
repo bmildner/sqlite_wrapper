@@ -13,6 +13,8 @@
 add_library(sqlite_wrapper.sqlite_wrapper SHARED ${SRC})
 add_library(sqlite_wrapper::sqlite_wrapper ALIAS sqlite_wrapper.sqlite_wrapper)
 
+set_target_properties(sqlite_wrapper.sqlite_wrapper PROPERTIES OUTPUT_NAME "sqlite_wrapper")
+
 target_include_directories(sqlite_wrapper.sqlite_wrapper PUBLIC "../include")
 
 # enable automatic export and import of symbols
@@ -23,7 +25,9 @@ target_link_libraries(sqlite_wrapper.sqlite_wrapper PRIVATE common_target_settin
 # -------
 
 add_library(sqlite_wrapper.sqlite_wrapper_static STATIC ${SRC})
-add_library(sqlite_wrapper::sqlite_wrapper_static ALIAS sqlite_wrapper::sqlite_wrapper_static)
+add_library(sqlite_wrapper::sqlite_wrapper_static ALIAS sqlite_wrapper.sqlite_wrapper_static)
+
+set_target_properties(sqlite_wrapper.sqlite_wrapper_static PROPERTIES OUTPUT_NAME "sqlite_wrapper_static")
 
 target_include_directories(sqlite_wrapper.sqlite_wrapper_static PUBLIC "../include")
 
@@ -33,5 +37,5 @@ target_include_directories(sqlite_wrapper.sqlite_wrapper_static PRIVATE ${SQLITE
 
 if (DEFINED MSVC)
   # this might prevent dynamic linking to SQLite on Windows due to name prefix of DLLImport symbols ...
-  target_compile_definitions(sqlite_wrapper.sqlite_wrapper_static PRIVATE SQLITE_API=)
+  target_compile_definitions(sqlite_wrapper.sqlite_wrapper_static PUBLIC SQLITE_API=)
 endif ()

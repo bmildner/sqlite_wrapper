@@ -1,7 +1,7 @@
 #pragma once
 
 #ifdef SQLITE_WRAPPER_SHARED  // set as PUBLIC for sqlite_wrapper target
-#  ifdef sqlite_wrapper_EXPORTS  // automatically set by cmake when building sqlite_wrapper target
+#  ifdef sqlite_wrapper_sqlite_wrapper_EXPORTS  // automatically set by cmake when building sqlite_wrapper target
 #    ifdef _WIN32
 #       define SQLITE_WRAPPER_EXPORT __declspec(dllexport)
 #    else
