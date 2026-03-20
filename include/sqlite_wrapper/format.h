@@ -1,10 +1,11 @@
 #pragma once
 
-#include <type_traits>
+#include <string>
 #include <utility>
 
+/// Define SQLITE_WRAPPER_FORCE_FMT_FORMAT to force using fmt::format library
 #ifdef __has_include
-#  if __has_include(<format>)
+#  if __has_include(<format>) && !defined(SQLITE_WRAPPER_FORCE_FMT_FORMAT)
 #    include <format>
 #    include <source_location>
 #    define SQLITEWRAPPER_FORMAT_NAMESPACE_NAME std
@@ -43,7 +44,7 @@ namespace sqlite_wrapper
   template <typename Enum>
   constexpr auto to_underlying(Enum value) noexcept -> std::underlying_type_t<Enum>
   {
-    return static_cast<std::underlying_type_t<Enum>>(value);
+    return static_cast<std::underlying_type_t<Enum> >(value);
   }
 #endif
 
