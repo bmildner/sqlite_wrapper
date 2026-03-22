@@ -7,10 +7,13 @@
 
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
+
+using namespace std::string_view_literals;
 
 using testing::HasSubstr;
 
@@ -70,24 +73,24 @@ namespace
 
 TEST(tuple_utils_tests, test_pop_front)
 {
-  const auto tuple{std::make_tuple(42, "hello", 3.14)};
+  const auto tuple{std::make_tuple(42, "hello"sv, 3.14)};
   const auto result{sqlite_wrapper::pop_front(tuple)};
 
-  static_assert(std::is_same_v<decltype(result), const std::tuple<const char*, double>>);
-  ASSERT_EQ(result, std::make_tuple("hello", 3.14));
+  static_assert(std::is_same_v<decltype(result), const std::tuple<std::string_view, double>>);
+  ASSERT_EQ(result, std::make_tuple("hello"sv, 3.14));
 
-  ASSERT_EQ(sqlite_wrapper::pop_front(std::make_tuple('a', "hello", 4711)), std::make_tuple("hello", 4711));
+  ASSERT_EQ(sqlite_wrapper::pop_front(std::make_tuple('a', "hello"sv, 4711)), std::make_tuple("hello"sv, 4711));
 }
 
 TEST(tuple_utils_tests, test_pop_back)
 {
-  const auto tuple{std::make_tuple(42, "hello", 3.14)};
+  const auto tuple{std::make_tuple(42, "hello"sv, 3.14)};
   const auto result{sqlite_wrapper::pop_back(tuple)};
 
-  static_assert(std::is_same_v<decltype(result), const std::tuple<int, const char*>>);
-  ASSERT_EQ(result, std::make_tuple(42, "hello"));
+  static_assert(std::is_same_v<decltype(result), const std::tuple<int, std::string_view>>);
+  ASSERT_EQ(result, std::make_tuple(42, "hello"sv));
 
-  ASSERT_EQ(sqlite_wrapper::pop_back(std::make_tuple('a', "hello", 4711)), std::make_tuple('a', "hello"));
+  ASSERT_EQ(sqlite_wrapper::pop_back(std::make_tuple('a', "hello"sv, 4711)), std::make_tuple('a', "hello"sv));
 }
 
 TEST(tuple_utils_tests, test_pop_front_perfect_forwarding)
