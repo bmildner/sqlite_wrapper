@@ -15,7 +15,7 @@
 
 using namespace std::string_view_literals;
 
-using testing::HasSubstr;
+using ::testing::HasSubstr;
 
 // test is_tuple_like concept
 static_assert(sqlite_wrapper::is_tuple_like<std::tuple<>>);

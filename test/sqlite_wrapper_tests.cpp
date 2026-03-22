@@ -6,6 +6,7 @@
 #include "sqlite_wrapper/sqlite_wrapper.h"
 #include "sqlite_wrapper/tuple_utils.h"
 
+#include <sqlite3.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -20,7 +21,6 @@
 #include <string>
 #include <string_view>
 #include <tuple>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -29,6 +29,7 @@ using namespace std::string_view_literals;
 using ::testing::AllOf;
 using ::testing::HasSubstr;
 using ::testing::StartsWith;
+using ::testing::StrEq;
 using ::testing::Test;
 
 namespace
@@ -236,7 +237,22 @@ namespace
   }
 }  // unnamed namespace
 
-TEST_F(sqlite_wrapper_tests, open)
+TEST_F(sqlite_wrapper_tests, test_sqlite_type_to_string)
+{
+  ASSERT_THAT(sqlite_wrapper::details::sqlite_type_to_string(SQLITE_INTEGER),
+              StrEq(sqlite_wrapper::format("INTEGER ({})", SQLITE_INTEGER)));
+  ASSERT_THAT(sqlite_wrapper::details::sqlite_type_to_string(SQLITE_FLOAT),
+              StrEq(sqlite_wrapper::format("FLOAT ({})", SQLITE_FLOAT)));
+  ASSERT_THAT(sqlite_wrapper::details::sqlite_type_to_string(SQLITE_BLOB),
+              StrEq(sqlite_wrapper::format("BLOB ({})", SQLITE_BLOB)));
+  ASSERT_THAT(sqlite_wrapper::details::sqlite_type_to_string(SQLITE_NULL),
+              StrEq(sqlite_wrapper::format("NULL ({})", SQLITE_NULL)));
+  ASSERT_THAT(sqlite_wrapper::details::sqlite_type_to_string(SQLITE3_TEXT),
+              StrEq(sqlite_wrapper::format("TEXT ({})", SQLITE3_TEXT)));
+  ASSERT_THAT(sqlite_wrapper::details::sqlite_type_to_string(-1), StrEq(sqlite_wrapper::format("<unknown type> ({})", -1)));
+}
+
+TEST_F(sqlite_wrapper_tests, test_open)
 {
   {
     auto database{sqlite_wrapper::open(temp_db_file_name.string())};
@@ -250,7 +266,7 @@ TEST_F(sqlite_wrapper_tests, open)
   }
 }
 
-TEST_F(sqlite_wrapper_tests, open_failes)
+TEST_F(sqlite_wrapper_tests, test_open_failes)
 {
   std::source_location location{};
 
@@ -265,7 +281,7 @@ TEST_F(sqlite_wrapper_tests, open_failes)
             HasSubstr(temp_db_file_name.string()), HasSubstr(location.file_name()), HasSubstr(location.function_name())));
 }
 
-TEST_F(sqlite_wrapper_tests, open_failes_get_location)
+TEST_F(sqlite_wrapper_tests, test_open_failes_get_location)
 {
   std::source_location location{};
 
@@ -287,7 +303,7 @@ TEST_F(sqlite_wrapper_tests, open_failes_get_location)
   FAIL() << "Did not catch sqlite_wrapper::sqlite_error as expected";
 }
 
-TEST_F(sqlite_wrapper_tests, open_flags_formating)
+TEST_F(sqlite_wrapper_tests, test_open_flags_formating)
 {
   ASSERT_EQ(sqlite_wrapper::format("{}", sqlite_wrapper::open_flags::open_only), "open_only");
   ASSERT_EQ(sqlite_wrapper::format("{}", sqlite_wrapper::open_flags::open_or_create), "open_or_create");
@@ -295,7 +311,7 @@ TEST_F(sqlite_wrapper_tests, open_flags_formating)
   ASSERT_EQ(sqlite_wrapper::format("{}", static_cast<sqlite_wrapper::open_flags>(999)), "<unknown (999)>");
 }
 
-TEST_F(sqlite_wrapper_tests, simple_select_query)
+TEST_F(sqlite_wrapper_tests, test_simple_select_query)
 {
   const auto database{set_up_test_database()};
   const auto rows{fill_test_database(database.get())};
