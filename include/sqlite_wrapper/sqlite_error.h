@@ -19,7 +19,7 @@ namespace sqlite_wrapper
     sqlite_error(std::string_view what, const stmt_with_location& stmt) : sqlite_error(what, stmt, 0) {}
 
     sqlite_error(std::string_view what, int error, const std::source_location& loc = std::source_location::current())
-        : sqlite_error(what, db_with_location{static_cast<sqlite3*>(nullptr), loc}, error)
+        : sqlite_error(what, db_with_location{nullptr, loc}, error)
     {
     }
 

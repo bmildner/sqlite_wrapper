@@ -18,9 +18,10 @@ namespace sqlite_wrapper
   {
     auto create_prepared_statement(const db_with_location& database, std::string_view sql) -> statement
     {
-      sqlite3_stmt* stmt{ nullptr };
+      sqlite3_stmt* stmt{nullptr};
 
-      if (const auto result{ ::sqlite3_prepare_v2(database.value, sql.data(), static_cast<int>(sql.size()), &stmt, nullptr) }; (result != SQLITE_OK) || (stmt == nullptr))
+      if (const auto result{::sqlite3_prepare_v2(database.value, sql.data(), static_cast<int>(sql.size()), &stmt, nullptr)};
+          (result != SQLITE_OK) || (stmt == nullptr))
       {
         assert(stmt == nullptr);
         throw sqlite_error(sqlite_wrapper::format("failed to create prepared statement \"{}\"", sql), database, result);
@@ -31,7 +32,7 @@ namespace sqlite_wrapper
 
     void bind_value(const stmt_with_location& stmt, int index)
     {
-      if (const auto result{ ::sqlite3_bind_null(stmt.value, index) }; result != SQLITE_OK)
+      if (const auto result{::sqlite3_bind_null(stmt.value, index)}; result != SQLITE_OK)
       {
         throw sqlite_error(sqlite_wrapper::format("failed to bind null to index {}", index), stmt, result);
       }
@@ -39,7 +40,7 @@ namespace sqlite_wrapper
 
     void bind_value(const stmt_with_location& stmt, int index, std::int64_t value)
     {
-      if (const auto result{ ::sqlite3_bind_int64(stmt.value, index, value) }; result != SQLITE_OK)
+      if (const auto result{::sqlite3_bind_int64(stmt.value, index, value)}; result != SQLITE_OK)
       {
         throw sqlite_error(sqlite_wrapper::format("failed to bind int64 to index {}", index), stmt, result);
       }
@@ -47,7 +48,7 @@ namespace sqlite_wrapper
 
     void bind_value(const stmt_with_location& stmt, int index, double value)
     {
-      if (const auto result{ ::sqlite3_bind_double(stmt.value, index, value) }; result != SQLITE_OK)
+      if (const auto result{::sqlite3_bind_double(stmt.value, index, value)}; result != SQLITE_OK)
       {
         throw sqlite_error(sqlite_wrapper::format("failed to bind double to index {}", index), stmt, result);
       }
@@ -55,7 +56,8 @@ namespace sqlite_wrapper
 
     void bind_value(const stmt_with_location& stmt, int index, std::string_view value)
     {
-      if (const auto result{::sqlite3_bind_text64(stmt.value, index, value.data(), value.size(), nullptr, SQLITE_UTF8)}; result != SQLITE_OK)
+      if (const auto result{::sqlite3_bind_text64(stmt.value, index, value.data(), value.size(), nullptr, SQLITE_UTF8)};
+          result != SQLITE_OK)
       {
         throw sqlite_error(sqlite_wrapper::format("failed to bind string to index {}", index), stmt, result);
       }
@@ -66,6 +68,25 @@ namespace sqlite_wrapper
       if (const auto result{::sqlite3_bind_blob64(stmt.value, index, value.data(), value.size(), nullptr)}; result != SQLITE_OK)
       {
         throw sqlite_error(sqlite_wrapper::format("failed to bind BLOB to index {}", index), stmt, result);
+      }
+    }
+
+    auto sqlite_type_to_string(int type) -> std::string
+    {
+      switch (type)
+      {
+        case SQLITE_INTEGER:
+          return format("INTEGER ({})", SQLITE_INTEGER);
+        case SQLITE_FLOAT:
+          return format("FLOAT ({})", SQLITE_FLOAT);
+        case SQLITE_BLOB:
+          return format("BLOB ({})", SQLITE_BLOB);
+        case SQLITE_NULL:
+          return format("NULL ({})", SQLITE_NULL);
+        case SQLITE3_TEXT:
+          return format("TEXT ({})", SQLITE3_TEXT);
+        default:
+          return format("<unknown type> ({})", type);
       }
     }
 
@@ -98,16 +119,18 @@ namespace sqlite_wrapper
 
         if (type != expected_type)
         {
-          throw sqlite_error(sqlite_wrapper::format("column at index {} has type {}, expected {}", index, type, expected_type), stmt, SQLITE_MISMATCH);
+          throw sqlite_error(sqlite_wrapper::format("column at index {} has type {}, expected {}", index,
+                                                    sqlite_type_to_string(type), sqlite_type_to_string(expected_type)),
+                             stmt, SQLITE_MISMATCH);
         }
 
         return true;
       }
-    }
+    }  // unnamed namespace
 
     auto get_column(const stmt_with_location& stmt, int index, std::int64_t& value, bool maybe_null) -> bool
     {
-      if (!details::check_null_and_column_type(stmt, index, SQLITE_INTEGER, maybe_null))
+      if (!check_null_and_column_type(stmt, index, SQLITE_INTEGER, maybe_null))
       {
         return false;
       }
@@ -131,7 +154,7 @@ namespace sqlite_wrapper
 
     auto get_column(const stmt_with_location& stmt, int index, std::string& value, bool maybe_null) -> bool
     {
-      if (!details::check_null_and_column_type(stmt, index, SQLITE_TEXT, maybe_null))
+      if (!check_null_and_column_type(stmt, index, SQLITE_TEXT, maybe_null))
       {
         return false;
       }
@@ -142,7 +165,8 @@ namespace sqlite_wrapper
 
       if (str == nullptr)
       {
-        throw sqlite_error(sqlite_wrapper::format("sqlite3_column_text() for index {} returned nullptr", index), stmt, SQLITE_NOMEM);
+        throw sqlite_error(sqlite_wrapper::format("sqlite3_column_text() for index {} returned nullptr", index), stmt,
+                           SQLITE_NOMEM);
       }
 
       value = std::string{str, length};
@@ -152,7 +176,7 @@ namespace sqlite_wrapper
 
     auto get_column(const stmt_with_location& stmt, int index, byte_vector& value, bool maybe_null) -> bool
     {
-      if (!details::check_null_and_column_type(stmt, index, SQLITE_BLOB, maybe_null))
+      if (!check_null_and_column_type(stmt, index, SQLITE_BLOB, maybe_null))
       {
         return false;
       }
@@ -163,7 +187,8 @@ namespace sqlite_wrapper
 
       if (data == nullptr)
       {
-        throw sqlite_error(sqlite_wrapper::format("sqlite3_column_blob() for index {} returned nullptr", index), stmt, SQLITE_NOMEM);
+        throw sqlite_error(sqlite_wrapper::format("sqlite3_column_blob() for index {} returned nullptr", index), stmt,
+                           SQLITE_NOMEM);
       }
 
       value.clear();
@@ -218,7 +243,8 @@ namespace sqlite_wrapper
     if (raw_db_handle == nullptr)
     {
       // make sure we do not return a nullptr
-      throw sqlite_error(sqlite_wrapper::format("sqlite3_open() returned nullptr for database \"{}\"", file_name), SQLITE_ERROR, loc);
+      throw sqlite_error(sqlite_wrapper::format("sqlite3_open() returned nullptr for database \"{}\"", file_name), SQLITE_ERROR,
+                         loc);
     }
 
     return database{raw_db_handle};
