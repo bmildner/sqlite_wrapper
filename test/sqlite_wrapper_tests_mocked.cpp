@@ -988,8 +988,8 @@ TEST_F(sqlite_wrapper_mocked_tests, get_row_basic_db_types_fails_with_value_type
               ASSERT_THROWS_WITH_MSG(
                   [&] { (void)sqlite_wrapper::get_row<Row>(&statement); }, sqlite_wrapper::sqlite_error,
                   AllOf(StartsWith(sqlite_wrapper::format("column at index 0 has type {}, expected {}",
-                                                          test_parameter_list.at(index).first,
-                                                          test_parameter_list.at(index).second)),
+                                                          sqlite_wrapper::details::sqlite_type_to_string(test_parameter_list.at(index).first),
+                                                          sqlite_wrapper::details::sqlite_type_to_string(test_parameter_list.at(index).second))),
                         HasSubstr(dummy_sql), HasSubstr(sqlite_errstr), HasSubstr(error_message_column_query_failed)));
             }};
 
