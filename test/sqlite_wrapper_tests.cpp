@@ -87,15 +87,14 @@ namespace
     const auto size = std::uniform_int_distribution<std::size_t>(1, string_and_blob_size_limit)(m_rng);
 
     column.resize(size);
-    std::ranges::generate(
-        column,
-        [&]()
-        {
-          // apparently std::uniform_int_distribution can not be used with "char, signed char, unsigned char, char8_t, int8_t, and
-          // uint8_t"
-          return static_cast<sqlite_wrapper::byte_vector::value_type>(
-              std::uniform_int_distribution<unsigned short>()(m_rng));
-        });
+    std::ranges::generate(column,
+                          [&]()
+                          {
+                            // apparently std::uniform_int_distribution can not be used with "char, signed char, unsigned char,
+                            // char8_t, int8_t, and uint8_t"
+                            return static_cast<sqlite_wrapper::byte_vector::value_type>(
+                                std::uniform_int_distribution<unsigned short>(0x00, 0xff)(m_rng));
+                          });
   }
 
   void random_data_generator::generate_random_column(std::size_t string_and_blob_size_limit, std::string& column)
@@ -103,8 +102,10 @@ namespace
     const auto size = std::uniform_int_distribution<std::size_t>(1, string_and_blob_size_limit)(m_rng);
 
     column.resize(size);
-    // apparently std::uniform_int_distribution can not be used with "char, signed char, unsigned char, char8_t, int8_t, and uint8_t"
-    std::ranges::generate(column, [&]() { return static_cast<char>(std::uniform_int_distribution<unsigned short>('0', 'z')(m_rng)); });
+    // apparently std::uniform_int_distribution can not be used with "char, signed char, unsigned char, char8_t, int8_t, and
+    // uint8_t"
+    std::ranges::generate(column,
+                          [&]() { return static_cast<char>(std::uniform_int_distribution<unsigned short>('0', 'z')(m_rng)); });
   }
 
   template <sqlite_wrapper::optional_database_type OptionalColumn>
