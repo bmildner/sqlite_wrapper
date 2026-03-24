@@ -6,31 +6,14 @@
 #include <gtest/gtest.h>
 
 #include <stdexcept>
-#include <string>
 #include <string_view>
 #include <tuple>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 using namespace std::string_view_literals;
 
 using ::testing::HasSubstr;
-
-// test is_tuple_like concept
-static_assert(sqlite_wrapper::is_tuple_like<std::tuple<>>);
-static_assert(sqlite_wrapper::is_tuple_like<std::tuple<int, char, float>>);
-static_assert(sqlite_wrapper::is_tuple_like<decltype(std::make_tuple(1, "a", 3.14))>);
-static_assert(sqlite_wrapper::is_tuple_like<std::pair<int, long>>);
-static_assert(sqlite_wrapper::is_tuple_like<decltype(std::make_pair("hello", 42))>);
-
-static_assert(!sqlite_wrapper::is_tuple_like<std::tuple<>&>);
-static_assert(!sqlite_wrapper::is_tuple_like<std::tuple<>&&>);
-
-static_assert(!sqlite_wrapper::is_tuple_like<void>);
-static_assert(!sqlite_wrapper::is_tuple_like<int>);
-static_assert(!sqlite_wrapper::is_tuple_like<std::string>);
-static_assert(!sqlite_wrapper::is_tuple_like<std::vector<int>>);
 
 // test add_type_front
 static_assert(std::is_same_v<sqlite_wrapper::add_type_front<int, std::tuple<>>, std::tuple<int>>);
@@ -39,6 +22,15 @@ static_assert(std::is_same_v<sqlite_wrapper::add_type_front<int, std::tuple<char
 // test add_type_back
 static_assert(std::is_same_v<sqlite_wrapper::add_type_back<int, std::tuple<>>, std::tuple<int>>);
 static_assert(std::is_same_v<sqlite_wrapper::add_type_back<int, std::tuple<char, float>>, std::tuple<char, float, int>>);
+
+// test remove_type_front
+static_assert(std::is_same_v<sqlite_wrapper::remove_type_front<std::tuple<int>>, std::tuple<>>);
+static_assert(std::is_same_v<sqlite_wrapper::remove_type_front<std::tuple<char, float>>, std::tuple<float>>);
+
+// test remove_type_back
+static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::tuple<int>>, std::tuple<>>);
+static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::tuple<char, float>>, std::tuple<char>>);
+static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::tuple<int, char, float>>, std::tuple<int, char>>);
 
 // test pop_front
 static_assert(std::is_same_v<decltype(sqlite_wrapper::pop_front(std::make_tuple("lol"))), std::tuple<>>);

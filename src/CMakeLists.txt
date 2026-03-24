@@ -9,7 +9,8 @@
         "../include/sqlite_wrapper/create_table.h"
         "create_table.cpp"
         "../include/sqlite_wrapper/config.h"
-        "../include/sqlite_wrapper/tuple_utils.h")
+        "../include/sqlite_wrapper/tuple_utils.h"
+        "../include/sqlite_wrapper/concepts.h")
 
 add_library(sqlite_wrapper.sqlite_wrapper SHARED ${SRC})
 add_library(sqlite_wrapper::sqlite_wrapper ALIAS sqlite_wrapper.sqlite_wrapper)

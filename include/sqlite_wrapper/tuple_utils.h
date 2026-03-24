@@ -1,6 +1,8 @@
 #pragma once
 
-#include <concepts>
+#include "sqlite_wrapper/concepts.h"
+
+#include <array>
 #include <cstddef>
 #include <tuple>
 #include <type_traits>
@@ -10,16 +12,6 @@ namespace sqlite_wrapper
 {
   namespace details
   {
-    /**
-     * Check that a given type T is a tuple element type at a given index N.
-     */
-    // see https://stackoverflow.com/questions/68443804/c20-concept-to-check-tuple-like-types
-    template <typename T, std::size_t N>
-    concept has_tuple_element = requires(T tuple) {
-      typename std::tuple_element_t<N, std::remove_const_t<T>>;
-      { std::get<N>(tuple) } -> std::convertible_to<const std::tuple_element_t<N, T>&>;
-    };
-
     template <typename T, typename Tuple>
     struct add_type_front;
 
@@ -37,25 +29,55 @@ namespace sqlite_wrapper
     {
       using type = std::tuple<Args..., T>;
     };
+
+    template <typename Tuple>
+    struct remove_type_front;
+
+    template <typename T, typename... Args>
+    struct remove_type_front<std::tuple<T, Args...>>
+    {
+      using type = std::tuple<Args...>;
+    };
+
+    template <typename Tuple>
+    struct remove_type_back;
+
+    template <typename... Args>
+    struct remove_type_back<std::tuple<Args...>>
+    {
+      using type = std::tuple<Args...>;  // For empty tuple
+    };
+
+    template <typename T>
+    struct remove_type_back<std::tuple<T>>
+    {
+      using type = std::tuple<>;
+    };
+
+    template <typename First, typename Second>
+    struct remove_type_back<std::tuple<First, Second>>
+    {
+      using type = std::tuple<First>;
+    };
+
+    template <typename First, typename Second, typename... Rest>
+    struct remove_type_back<std::tuple<First, Second, Rest...>>
+    {
+      using type = add_type_front<First, typename remove_type_back<std::tuple<Second, Rest...>>::type>::type;
+    };
   }  // namespace details
 
-  /**
-   * Checks that a given type is a "tuple_like" type.
-   */
-  // see https://stackoverflow.com/questions/68443804/c20-concept-to-check-tuple-like-types
-  template <typename T>
-  concept is_tuple_like =
-      requires {
-        typename std::tuple_size<T>::type;
-        requires std::derived_from<std::tuple_size<T>, std::integral_constant<std::size_t, std::tuple_size_v<T>>>;
-      } && []<std::size_t... N>(std::index_sequence<N...>) -> auto
-  { return (details::has_tuple_element<T, N> && ...); }(std::make_index_sequence<std::tuple_size_v<T>>());
+  template <typename T, typename Tuple>
+  using add_type_front = details::add_type_front<T, Tuple>::type;
 
-  template <typename T, typename... Args>
-  using add_type_front = details::add_type_front<T, Args...>::type;
+  template <typename T, typename Tuple>
+  using add_type_back = details::add_type_back<T, Tuple>::type;
 
-  template <typename T, typename... Args>
-  using add_type_back = details::add_type_back<T, Args...>::type;
+  template <typename Tuple>
+  using remove_type_front = details::remove_type_front<Tuple>::type;
+
+  template <typename Tuple>
+  using remove_type_back = details::remove_type_back<Tuple>::type;
 
   template <typename Tuple>
     requires is_tuple_like<std::decay_t<Tuple>> && (std::tuple_size_v<std::decay_t<Tuple>> >= 1)

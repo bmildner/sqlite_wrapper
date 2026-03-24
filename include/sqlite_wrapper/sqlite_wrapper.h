@@ -5,6 +5,7 @@
 #include "sqlite_wrapper/raii.h"
 #include "sqlite_wrapper/sqlite_error.h"
 #include "sqlite_wrapper/tuple_utils.h"
+#include "sqlite_wrapper/concepts.h"
 
 #include <algorithm>
 #include <concepts>
@@ -26,14 +27,11 @@ namespace sqlite_wrapper
   using byte_vector = std::vector<std::byte>;
   using const_byte_span = std::span<const std::byte>;
 
-  template <typename T, typename U, typename... V>
-  concept same_as = std::same_as<T, U> || (std::same_as<T, V> || ...);
-
   /**
    * Basic types that con be queried from the database.
    */
   template <typename T>
-  concept basic_database_type = same_as<T, std::int64_t, double, std::string, byte_vector>;
+  concept basic_database_type = same_as_either<T, std::int64_t, double, std::string, byte_vector>;
 
   /**
    * Optional versions of basic types that con be queried from the database.
@@ -76,7 +74,7 @@ namespace sqlite_wrapper
    * Null like types that can be bound to a parameter in a database query.
    */
   template <typename T>
-  concept null_binding_type = same_as<T, std::nullptr_t, std::nullopt_t>;
+  concept null_binding_type = same_as_either<T, std::nullptr_t, std::nullopt_t>;
 
   /**
    * Basic types that can be bound to a parameter in a database query.

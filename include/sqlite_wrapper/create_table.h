@@ -29,7 +29,7 @@ namespace sqlite_wrapper
   };
 
   template <typename T>
-  concept column_type = database_type<T> || same_as<T, primary_key, foreign_key>;
+  concept column_type = database_type<T> || same_as_either<T, primary_key, foreign_key>;
 
   namespace details
   {
