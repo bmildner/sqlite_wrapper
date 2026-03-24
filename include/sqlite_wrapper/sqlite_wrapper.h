@@ -208,7 +208,7 @@ namespace sqlite_wrapper
 
     SQLITE_WRAPPER_EXPORT void clear_bindings(const stmt_with_location& stmt);
 
-    [[nodiscard]] auto sqlite_type_to_string(int type) -> std::string;
+    [[nodiscard]] SQLITE_WRAPPER_EXPORT auto sqlite_type_to_string(int type) -> std::string;
   }  // namespace details
 
   /**
