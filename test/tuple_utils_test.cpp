@@ -19,27 +19,33 @@ using ::testing::HasSubstr;
 // test add_type_front
 static_assert(std::is_same_v<sqlite_wrapper::add_type_front<int, std::tuple<>>, std::tuple<int>>);
 static_assert(std::is_same_v<sqlite_wrapper::add_type_front<int, std::tuple<char, float>>, std::tuple<int, char, float>>);
+static_assert(std::is_same_v<sqlite_wrapper::add_type_front<int, std::pair<char, bool>>, std::tuple<int, char, bool>>);
 
 // test add_type_back
 static_assert(std::is_same_v<sqlite_wrapper::add_type_back<int, std::tuple<>>, std::tuple<int>>);
 static_assert(std::is_same_v<sqlite_wrapper::add_type_back<int, std::tuple<char, float>>, std::tuple<char, float, int>>);
+static_assert(std::is_same_v<sqlite_wrapper::add_type_back<int, std::pair<char, bool>>, std::tuple<char, bool, int>>);
 
 // test remove_type_front
 static_assert(std::is_same_v<sqlite_wrapper::remove_type_front<std::tuple<int>>, std::tuple<>>);
 static_assert(std::is_same_v<sqlite_wrapper::remove_type_front<std::tuple<char, float>>, std::tuple<float>>);
+static_assert(std::is_same_v<sqlite_wrapper::remove_type_front<std::pair<int, unsigned>>, std::tuple<unsigned>>);
 
 // test remove_type_back
 static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::tuple<int>>, std::tuple<>>);
 static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::tuple<char, float>>, std::tuple<char>>);
 static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::tuple<int, char, float>>, std::tuple<int, char>>);
+static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::pair<int, unsigned>>, std::tuple<int>>);
 
 // test pop_front
-static_assert(std::is_same_v<decltype(sqlite_wrapper::pop_front(std::make_tuple("lol"))), std::tuple<>>);
-static_assert(std::is_same_v<decltype(sqlite_wrapper::pop_front(std::make_tuple('a', -1, 42))), std::tuple<int, int>>);
+static_assert(std::is_same_v<decltype(sqlite_wrapper::pop_front(std::make_tuple("lol"))), std::pair<const char*, std::tuple<>>>);
+static_assert(
+    std::is_same_v<decltype(sqlite_wrapper::pop_front(std::make_tuple('a', -1, 42))), std::pair<char, std::tuple<int, int>>>);
 
 // test pop_back
-static_assert(std::is_same_v<decltype(sqlite_wrapper::pop_back(std::make_tuple("lol"))), std::tuple<>>);
-static_assert(std::is_same_v<decltype(sqlite_wrapper::pop_back(std::make_tuple('a', -1, 42))), std::tuple<char, int>>);
+static_assert(std::is_same_v<decltype(sqlite_wrapper::pop_back(std::make_tuple("lol"))), std::pair<const char*, std::tuple<>>>);
+static_assert(
+    std::is_same_v<decltype(sqlite_wrapper::pop_back(std::make_tuple('a', -1, 42))), std::pair<int, std::tuple<char, int>>>);
 
 namespace
 {
@@ -69,10 +75,12 @@ TEST(tuple_utils_tests, test_pop_front)
   const auto tuple{std::make_tuple(42, "hello"sv, 3.14)};
   const auto result{sqlite_wrapper::pop_front(tuple)};
 
-  static_assert(std::is_same_v<decltype(result), const std::tuple<std::string_view, double>>);
-  ASSERT_EQ(result, std::make_tuple("hello"sv, 3.14));
+  static_assert(std::is_same_v<decltype(result), const std::pair<int, std::tuple<std::string_view, double>>>);
+  ASSERT_EQ(result.first, 42);
+  ASSERT_EQ(result.second, std::make_tuple("hello"sv, 3.14));
 
-  ASSERT_EQ(sqlite_wrapper::pop_front(std::make_tuple('a', "hello"sv, 4711)), std::make_tuple("hello"sv, 4711));
+  ASSERT_EQ(sqlite_wrapper::pop_front(std::make_tuple('a', "hello"sv, 4711)),
+            std::make_pair('a', std::make_tuple("hello"sv, 4711)));
 }
 
 TEST(tuple_utils_tests, test_pop_back)
@@ -80,10 +88,12 @@ TEST(tuple_utils_tests, test_pop_back)
   const auto tuple{std::make_tuple(42, "hello"sv, 3.14)};
   const auto result{sqlite_wrapper::pop_back(tuple)};
 
-  static_assert(std::is_same_v<decltype(result), const std::tuple<int, std::string_view>>);
-  ASSERT_EQ(result, std::make_tuple(42, "hello"sv));
+  static_assert(std::is_same_v<decltype(result), const std::pair<double, std::tuple<int, std::string_view>>>);
+  ASSERT_EQ(result.first, 3.14);
+  ASSERT_EQ(result.second, std::make_tuple(42, "hello"sv));
 
-  ASSERT_EQ(sqlite_wrapper::pop_back(std::make_tuple('a', "hello"sv, 4711)), std::make_tuple('a', "hello"sv));
+  ASSERT_EQ(sqlite_wrapper::pop_back(std::make_tuple('a', "hello"sv, 4711)),
+            std::make_pair(4711, std::make_tuple('a', "hello"sv)));
 }
 
 TEST(tuple_utils_tests, test_pop_front_perfect_forwarding)

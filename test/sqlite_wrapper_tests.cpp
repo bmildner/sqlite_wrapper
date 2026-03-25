@@ -317,19 +317,19 @@ TEST_F(sqlite_wrapper_tests, test_simple_select_query)
   const auto database{set_up_test_database()};
   const auto rows{fill_test_database(database.get())};
 
-  constexpr auto select_all_from_test_table{R"(SELECT * FROM Test)"sv};
+  constexpr auto select_all_from_test_table{"SELECT * FROM Test"sv};
 
   const auto stmt{sqlite_wrapper::create_prepared_statement(database.get(), select_all_from_test_table)};
 
   auto row_iter{rows.cbegin()};
-  std::int64_t row_id{1};
+  std::int64_t row_id_iter{1};
   while (sqlite_wrapper::step(stmt.get()))
   {
     using read_row_type = sqlite_wrapper::add_type_front<std::int64_t, row_type>;
-    auto row{sqlite_wrapper::get_row<read_row_type>(stmt.get())};
+    const auto [row_id, row] = sqlite_wrapper::pop_front(sqlite_wrapper::get_row<read_row_type>(stmt.get()));
 
     ASSERT_NE(row_iter, rows.cend()) << "More rows returned from database than inserted!";
-    ASSERT_EQ(row_id++, std::get<0>(row)) << "Generated row id does not match expected value!";
-    ASSERT_EQ(sqlite_wrapper::pop_front(std::move(row)), *(row_iter++)) << "Returned row data does not match inserted row!";
+    ASSERT_EQ(row_id_iter++, row_id) << "Generated row id does not match expected value!";
+    ASSERT_EQ(*(row_iter++), row) << "Returned row data does not match inserted row!";
   }
 }

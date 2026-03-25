@@ -21,6 +21,12 @@ namespace sqlite_wrapper
       using type = std::tuple<T, Args...>;
     };
 
+    template <typename T, typename U, typename V>
+    struct add_type_front<T, std::pair<U, V>>
+    {
+      using type = std::tuple<T, U, V>;
+    };
+
     template <typename T, typename Tuple>
     struct add_type_back;
 
@@ -30,6 +36,12 @@ namespace sqlite_wrapper
       using type = std::tuple<Args..., T>;
     };
 
+    template <typename T, typename U, typename V>
+    struct add_type_back<T, std::pair<U, V>>
+    {
+      using type = std::tuple<U, V, T>;
+    };
+
     template <typename Tuple>
     struct remove_type_front;
 
@@ -37,6 +49,12 @@ namespace sqlite_wrapper
     struct remove_type_front<std::tuple<T, Args...>>
     {
       using type = std::tuple<Args...>;
+    };
+
+    template <typename T, typename U>
+    struct remove_type_front<std::pair<T, U>>
+    {
+      using type = std::tuple<U>;
     };
 
     template <typename Tuple>
@@ -65,6 +83,12 @@ namespace sqlite_wrapper
     {
       using type = add_type_front<First, typename remove_type_back<std::tuple<Second, Rest...>>::type>::type;
     };
+
+    template <typename T, typename U>
+    struct remove_type_back<std::pair<T, U>>
+    {
+      using type = std::tuple<T>;
+    };
   }  // namespace details
 
   template <typename T, typename Tuple>
@@ -83,18 +107,21 @@ namespace sqlite_wrapper
     requires is_tuple_like<std::decay_t<Tuple>> && (std::tuple_size_v<std::decay_t<Tuple>> >= 1)
   [[nodiscard]] constexpr auto pop_front(Tuple&& tuple)
   {
-    return std::apply([](auto&&, auto&&... rest) -> auto { return std::make_tuple(std::forward<decltype(rest)>(rest)...); },
-                      std::forward<Tuple>(tuple));
+    return std::make_pair(
+        std::get<0>(std::forward<Tuple>(tuple)),
+        std::apply([](auto&&, auto&&... rest) -> auto { return std::make_tuple(std::forward<decltype(rest)>(rest)...); },
+                   std::forward<Tuple>(tuple)));
   }
 
   template <typename Tuple>
     requires is_tuple_like<std::decay_t<Tuple>> && (std::tuple_size_v<std::decay_t<Tuple>> >= 1)
   [[nodiscard]] constexpr auto pop_back(Tuple&& tuple)
   {
-    return [&]<std::size_t... I>(std::index_sequence<I...>) -> auto
-    {
-      return std::make_tuple(std::get<I>(std::forward<Tuple>(tuple))...);
-    }(std::make_index_sequence<std::tuple_size_v<std::decay_t<Tuple>> - 1>());
+    return std::make_pair(std::get<std::tuple_size_v<std::decay_t<Tuple>> - 1>(std::forward<Tuple>(tuple)),
+                          [&]<std::size_t... I>(std::index_sequence<I...>) -> auto
+                          {
+                            return std::make_tuple(std::get<I>(std::forward<Tuple>(tuple))...);
+                          }(std::make_index_sequence<std::tuple_size_v<std::decay_t<Tuple>> - 1>()));
   }
 
   template <typename Tuple>
