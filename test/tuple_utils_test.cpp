@@ -28,11 +28,13 @@ static_assert(std::is_same_v<sqlite_wrapper::add_type_back<int, std::pair<char, 
 
 // test remove_type_front
 static_assert(std::is_same_v<sqlite_wrapper::remove_type_front<std::tuple<int>>, std::tuple<>>);
+static_assert(std::is_same_v<sqlite_wrapper::remove_type_front<std::tuple<>>, std::tuple<>>);  // TODO: desired behavior?
 static_assert(std::is_same_v<sqlite_wrapper::remove_type_front<std::tuple<char, float>>, std::tuple<float>>);
 static_assert(std::is_same_v<sqlite_wrapper::remove_type_front<std::pair<int, unsigned>>, std::tuple<unsigned>>);
 
 // test remove_type_back
 static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::tuple<int>>, std::tuple<>>);
+static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::tuple<>>, std::tuple<>>);  // TODO: desired behavior?
 static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::tuple<char, float>>, std::tuple<char>>);
 static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::tuple<int, char, float>>, std::tuple<int, char>>);
 static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::pair<int, unsigned>>, std::tuple<int>>);

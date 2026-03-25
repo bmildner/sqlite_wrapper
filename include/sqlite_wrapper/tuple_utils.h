@@ -45,6 +45,13 @@ namespace sqlite_wrapper
     template <typename Tuple>
     struct remove_type_front;
 
+    // For empty tuple
+    template <>
+    struct remove_type_front<std::tuple<>>
+    {
+      using type = std::tuple<>;
+    };
+
     template <typename T, typename... Args>
     struct remove_type_front<std::tuple<T, Args...>>
     {
@@ -60,10 +67,11 @@ namespace sqlite_wrapper
     template <typename Tuple>
     struct remove_type_back;
 
-    template <typename... Args>
-    struct remove_type_back<std::tuple<Args...>>
+    // For empty tuple
+    template <>
+    struct remove_type_back<std::tuple<>>
     {
-      using type = std::tuple<Args...>;  // For empty tuple
+      using type = std::tuple<>;
     };
 
     template <typename T>
