@@ -97,4 +97,13 @@ namespace sqlite_wrapper
     }(std::make_index_sequence<std::tuple_size_v<std::decay_t<Tuple>> - 1>());
   }
 
+  template <typename Tuple>
+    requires is_array_like<std::decay_t<Tuple>>
+  [[nodiscard]] constexpr auto to_array(Tuple&& tuple)
+  {
+    using array_type = std::array<std::tuple_element_t<0, std::decay_t<Tuple>>, std::tuple_size_v<std::decay_t<Tuple>>>;
+    return std::apply([]<typename... T>(T&&... elements) -> auto { return array_type{std::forward<T>(elements)...}; },
+                      std::forward<Tuple>(tuple));
+  }
+
 }  // namespace sqlite_wrapper

@@ -26,11 +26,11 @@ static_assert(!sqlite_wrapper::is_tuple_like<std::vector<int>>);
 static_assert(sqlite_wrapper::is_array_like<std::array<bool, 0>>);
 static_assert(sqlite_wrapper::is_array_like<std::array<char, 1>>);
 static_assert(sqlite_wrapper::is_array_like<std::array<std::string, 10>>);
-static_assert(sqlite_wrapper::is_array_like<std::tuple<>>);
 static_assert(sqlite_wrapper::is_array_like<std::tuple<int>>);
 static_assert(sqlite_wrapper::is_array_like<std::tuple<int, int>>);
 static_assert(sqlite_wrapper::is_array_like<std::pair<bool, bool>>);
 
+static_assert(!sqlite_wrapper::is_array_like<std::tuple<>>);
 static_assert(!sqlite_wrapper::is_array_like<std::tuple<int, int, bool>>);
 static_assert(!sqlite_wrapper::is_array_like<std::tuple<unsigned, int, int>>);
 

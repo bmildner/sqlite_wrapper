@@ -1,11 +1,10 @@
 ﻿#pragma once
 
+#include "sqlite_wrapper/concepts.h"
 #include "sqlite_wrapper/config.h"
 #include "sqlite_wrapper/format.h"
 #include "sqlite_wrapper/raii.h"
 #include "sqlite_wrapper/sqlite_error.h"
-#include "sqlite_wrapper/tuple_utils.h"
-#include "sqlite_wrapper/concepts.h"
 
 #include <algorithm>
 #include <concepts>

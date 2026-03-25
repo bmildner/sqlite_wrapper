@@ -1,7 +1,9 @@
 #pragma once
 
 #include <concepts>
+#include <ranges>
 #include <tuple>
+#include <utility>
 
 namespace sqlite_wrapper
 {
@@ -33,10 +35,10 @@ namespace sqlite_wrapper
   template <typename T>
   concept is_array_like =
       is_tuple_like<T> &&
-      (std::tuple_size_v<T> <= 1 || (std::tuple_size_v<T> > 1 && []<std::size_t... N>(std::index_sequence<N...>) -> auto
-                                     {
-                                       return (std::same_as<std::tuple_element_t<0, T>, std::tuple_element_t<N, T>> && ...);
-                                     }(std::make_index_sequence<std::tuple_size_v<T>>())));
+      (std::ranges::range<T> || ((std::tuple_size_v<T> >= 1) && []<std::size_t... N>(std::index_sequence<N...>) -> auto
+                                 {
+                                   return (std::same_as<std::tuple_element_t<0, T>, std::tuple_element_t<N, T>> && ...);
+                                 }(std::make_index_sequence<std::tuple_size_v<T>>())));
 
   template <typename T, typename U, typename... V>
   concept same_as_either = std::same_as<T, U> || (std::same_as<T, V> || ...);

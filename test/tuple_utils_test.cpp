@@ -5,6 +5,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <array>
 #include <stdexcept>
 #include <string_view>
 #include <tuple>
@@ -101,4 +102,30 @@ TEST(tuple_utils_tests, test_pop_back_perfect_forwarding)
   ASSERT_THROWS_WITH_MSG([&] { (void)sqlite_wrapper::pop_back(tuple); }, std::runtime_error,
                          HasSubstr("copy constructor called"));
   (void)sqlite_wrapper::pop_back(std::move(tuple));
+}
+
+TEST(tuple_utils_tests, test_to_array)
+{
+  {
+    const auto tuple{std::make_tuple(3.4, 24.0, 4711.0)};
+    const auto result{sqlite_wrapper::to_array(tuple)};
+
+    ASSERT_EQ(result.size(), std::tuple_size_v<decltype(tuple)>);
+    ASSERT_EQ(result[0], std::get<0>(tuple));
+    ASSERT_EQ(result[1], std::get<1>(tuple));
+    ASSERT_EQ(result[2], std::get<2>(tuple));
+  }
+  {
+    const auto array{std::to_array({42, 4711, -1})};
+    ASSERT_EQ(sqlite_wrapper::to_array(array), array);
+  }
+}
+
+TEST(tuple_utils_tests, test_to_array_perfect_forwarding)
+{
+  auto tuple{std::make_tuple(throw_on_copy{}, throw_on_copy{}, throw_on_copy{})};
+
+  ASSERT_THROWS_WITH_MSG([&] { (void)sqlite_wrapper::to_array(tuple); }, std::runtime_error,
+                         HasSubstr("copy constructor called"));
+  (void)sqlite_wrapper::to_array(std::move(tuple));
 }
