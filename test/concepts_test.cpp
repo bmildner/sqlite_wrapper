@@ -3,36 +3,37 @@
 #include <array>
 #include <string>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
-// test is_tuple_like concept
-static_assert(sqlite_wrapper::is_tuple_like<std::tuple<>>);
-static_assert(sqlite_wrapper::is_tuple_like<std::tuple<int, char, float>>);
-static_assert(sqlite_wrapper::is_tuple_like<decltype(std::make_tuple(1, "a", 3.14))>);
-static_assert(sqlite_wrapper::is_tuple_like<std::pair<int, long>>);
-static_assert(sqlite_wrapper::is_tuple_like<decltype(std::make_pair("hello", 42))>);
-static_assert(sqlite_wrapper::is_tuple_like<std::array<int, 3>>);
+// test tuple_like concept
+static_assert(sqlite_wrapper::tuple_like<std::tuple<>>);
+static_assert(sqlite_wrapper::tuple_like<std::tuple<int, char, float>>);
+static_assert(sqlite_wrapper::tuple_like<decltype(std::make_tuple(1, "a", 3.14))>);
+static_assert(sqlite_wrapper::tuple_like<std::pair<int, long>>);
+static_assert(sqlite_wrapper::tuple_like<decltype(std::make_pair("hello", 42))>);
+static_assert(sqlite_wrapper::tuple_like<std::array<int, 3>>);
 
-static_assert(!sqlite_wrapper::is_tuple_like<std::tuple<>&>);
-static_assert(!sqlite_wrapper::is_tuple_like<std::tuple<>&&>);
+static_assert(!sqlite_wrapper::tuple_like<std::tuple<>&>);
+static_assert(!sqlite_wrapper::tuple_like<std::tuple<>&&>);
 
-static_assert(!sqlite_wrapper::is_tuple_like<void>);
-static_assert(!sqlite_wrapper::is_tuple_like<int>);
-static_assert(!sqlite_wrapper::is_tuple_like<std::string>);
-static_assert(!sqlite_wrapper::is_tuple_like<std::vector<int>>);
+static_assert(!sqlite_wrapper::tuple_like<void>);
+static_assert(!sqlite_wrapper::tuple_like<int>);
+static_assert(!sqlite_wrapper::tuple_like<std::string>);
+static_assert(!sqlite_wrapper::tuple_like<std::vector<int>>);
 
-// test is_array_like concept
-static_assert(sqlite_wrapper::is_array_like<std::array<bool, 0>>);
-static_assert(sqlite_wrapper::is_array_like<std::array<char, 1>>);
-static_assert(sqlite_wrapper::is_array_like<std::array<std::string, 10>>);
-static_assert(sqlite_wrapper::is_array_like<std::tuple<int>>);
-static_assert(sqlite_wrapper::is_array_like<std::tuple<int, int>>);
-static_assert(sqlite_wrapper::is_array_like<std::pair<bool, bool>>);
+// test array_like concept
+static_assert(sqlite_wrapper::array_like<std::array<bool, 0>>);
+static_assert(sqlite_wrapper::array_like<std::array<char, 1>>);
+static_assert(sqlite_wrapper::array_like<std::array<std::string, 10>>);
+static_assert(sqlite_wrapper::array_like<std::tuple<int>>);
+static_assert(sqlite_wrapper::array_like<std::tuple<int, int>>);
+static_assert(sqlite_wrapper::array_like<std::pair<bool, bool>>);
 
-static_assert(!sqlite_wrapper::is_array_like<std::tuple<>>);
-static_assert(!sqlite_wrapper::is_array_like<std::tuple<int, int, bool>>);
-static_assert(!sqlite_wrapper::is_array_like<std::tuple<unsigned, int, int>>);
+static_assert(!sqlite_wrapper::array_like<std::tuple<>>);
+static_assert(!sqlite_wrapper::array_like<std::tuple<int, int, bool>>);
+static_assert(!sqlite_wrapper::array_like<std::tuple<unsigned, int, int>>);
 
 // test smake_as_either concept
 static_assert(sqlite_wrapper::same_as_either<int, int>);
@@ -50,3 +51,12 @@ static_assert(sqlite_wrapper::same_as_all<int, int, int, int>);
 static_assert(!sqlite_wrapper::same_as_all<bool, int>);
 static_assert(!sqlite_wrapper::same_as_all<bool, const bool>);
 static_assert(!sqlite_wrapper::same_as_all<int, int, int, int, unsigned, int>);
+
+// test bool_integral_constant
+static_assert(sqlite_wrapper::bool_integral_constant<std::true_type>);
+static_assert(sqlite_wrapper::bool_integral_constant<std::integral_constant<bool, true>>);
+static_assert(sqlite_wrapper::bool_integral_constant<std::false_type>);
+static_assert(sqlite_wrapper::bool_integral_constant<std::integral_constant<bool, false>>);
+static_assert(!sqlite_wrapper::bool_integral_constant<bool>);
+static_assert(!sqlite_wrapper::bool_integral_constant<int>);
+static_assert(!sqlite_wrapper::bool_integral_constant<std::integral_constant<int, 1>>);

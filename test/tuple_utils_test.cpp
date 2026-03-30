@@ -16,6 +16,20 @@ using namespace std::string_view_literals;
 
 using ::testing::HasSubstr;
 
+// test try_to_convert_to_array_type
+static_assert(std::is_same_v<sqlite_wrapper::try_to_convert_to_array_type<std::tuple<int>>, std::array<int, 1>>);
+static_assert(std::is_same_v<sqlite_wrapper::try_to_convert_to_array_type<std::tuple<bool, bool>>, std::array<bool, 2>>);
+static_assert(std::is_same_v<sqlite_wrapper::try_to_convert_to_array_type<std::tuple<char, char, char>>, std::array<char, 3>>);
+static_assert(std::is_same_v<sqlite_wrapper::try_to_convert_to_array_type<std::tuple<>>, std::tuple<>>);
+static_assert(std::is_same_v<sqlite_wrapper::try_to_convert_to_array_type<std::tuple<int, char, int>>, std::tuple<int, char, int>>);
+static_assert(std::is_same_v<sqlite_wrapper::try_to_convert_to_array_type<std::tuple<int, char, char>>, std::tuple<int, char, char>>);
+static_assert(std::is_same_v<sqlite_wrapper::try_to_convert_to_array_type<std::tuple<char, char, int>>, std::tuple<char, char, int>>);
+
+// test to_array_type
+static_assert(std::is_same_v<sqlite_wrapper::convert_to_array_type<std::tuple<int>>, std::array<int, 1>>);
+static_assert(std::is_same_v<sqlite_wrapper::convert_to_array_type<std::tuple<bool, bool>>, std::array<bool, 2>>);
+static_assert(std::is_same_v<sqlite_wrapper::convert_to_array_type<std::tuple<char, char, char>>, std::array<char, 3>>);
+
 // test add_type_front
 static_assert(std::is_same_v<sqlite_wrapper::add_type_front<int, std::tuple<>>, std::tuple<int>>);
 static_assert(std::is_same_v<sqlite_wrapper::add_type_front<int, std::tuple<char, float>>, std::tuple<int, char, float>>);
@@ -31,6 +45,13 @@ static_assert(std::is_same_v<sqlite_wrapper::remove_type_front<std::tuple<int>>,
 static_assert(std::is_same_v<sqlite_wrapper::remove_type_front<std::tuple<>>, std::tuple<>>);  // TODO: desired behavior?
 static_assert(std::is_same_v<sqlite_wrapper::remove_type_front<std::tuple<char, float>>, std::tuple<float>>);
 static_assert(std::is_same_v<sqlite_wrapper::remove_type_front<std::pair<int, unsigned>>, std::tuple<unsigned>>);
+static_assert(std::is_same_v<sqlite_wrapper::remove_type_front<std::tuple<char, float, float, float>, std::false_type>,
+                             std::tuple<float, float, float>>);
+
+static_assert(
+    std::is_same_v<sqlite_wrapper::remove_type_front<std::pair<int, unsigned>, std::true_type>, std::array<unsigned, 1>>);
+static_assert(std::is_same_v<sqlite_wrapper::remove_type_front<std::tuple<char, float, float, float>, std::true_type>,
+                             std::array<float, 3>>);
 
 // test remove_type_back
 static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::tuple<int>>, std::tuple<>>);
@@ -38,6 +59,12 @@ static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::tuple<>>, std
 static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::tuple<char, float>>, std::tuple<char>>);
 static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::tuple<int, char, float>>, std::tuple<int, char>>);
 static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::pair<int, unsigned>>, std::tuple<int>>);
+static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::tuple<float, float, float, long>, std::false_type>,
+                             std::tuple<float, float, float>>);
+
+static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::pair<int, unsigned>, std::true_type>, std::array<int, 1>>);
+static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::tuple<float, float, float, long>, std::true_type>,
+                             std::array<float, 3>>);
 
 // test pop_front
 static_assert(std::is_same_v<decltype(sqlite_wrapper::pop_front(std::make_tuple("lol"))), std::pair<const char*, std::tuple<>>>);
@@ -51,21 +78,21 @@ static_assert(
 
 namespace
 {
-  struct throw_on_copy
+  struct throws_on_copy
   {
-    throw_on_copy() = default;
-    ~throw_on_copy() = default;
+    throws_on_copy() = default;
+    ~throws_on_copy() = default;
 
-    throw_on_copy(throw_on_copy&&) noexcept = default;
-    auto operator=(throw_on_copy&&) noexcept -> throw_on_copy& = default;
+    throws_on_copy(throws_on_copy&&) noexcept = default;
+    auto operator=(throws_on_copy&&) noexcept -> throws_on_copy& = default;
 
-    throw_on_copy([[maybe_unused]] const throw_on_copy& other)
+    throws_on_copy([[maybe_unused]] const throws_on_copy& other)
     {
       throw std::runtime_error("copy constructor called");
     }
 
     // NOLINTNEXTLINE(cert-oop54-cpp) "does not handle self-assignment properly"
-    auto operator=([[maybe_unused]] const throw_on_copy& other) -> throw_on_copy&
+    auto operator=([[maybe_unused]] const throws_on_copy& other) -> throws_on_copy&
     {
       throw std::runtime_error("copy assignment operator called");
     }
@@ -100,7 +127,7 @@ TEST(tuple_utils_tests, test_pop_back)
 
 TEST(tuple_utils_tests, test_pop_front_perfect_forwarding)
 {
-  auto tuple{std::make_tuple(42, throw_on_copy{})};
+  auto tuple{std::make_tuple(42, throws_on_copy{})};
 
   ASSERT_THROWS_WITH_MSG([&] { (void)sqlite_wrapper::pop_front(tuple); }, std::runtime_error,
                          HasSubstr("copy constructor called"));
@@ -109,7 +136,7 @@ TEST(tuple_utils_tests, test_pop_front_perfect_forwarding)
 
 TEST(tuple_utils_tests, test_pop_back_perfect_forwarding)
 {
-  auto tuple{std::make_tuple(throw_on_copy{}, 42)};
+  auto tuple{std::make_tuple(throws_on_copy{}, 42)};
 
   ASSERT_THROWS_WITH_MSG([&] { (void)sqlite_wrapper::pop_back(tuple); }, std::runtime_error,
                          HasSubstr("copy constructor called"));
@@ -135,7 +162,7 @@ TEST(tuple_utils_tests, test_to_array)
 
 TEST(tuple_utils_tests, test_to_array_perfect_forwarding)
 {
-  auto tuple{std::make_tuple(throw_on_copy{}, throw_on_copy{}, throw_on_copy{})};
+  auto tuple{std::make_tuple(throws_on_copy{}, throws_on_copy{}, throws_on_copy{})};
 
   ASSERT_THROWS_WITH_MSG([&] { (void)sqlite_wrapper::to_array(tuple); }, std::runtime_error,
                          HasSubstr("copy constructor called"));
