@@ -28,18 +28,24 @@ namespace sqlite_wrapper
   template <typename T>
   concept tuple_like =
       requires {
-        typename std::tuple_size<T>::type;
-        requires std::derived_from<std::tuple_size<T>, std::integral_constant<std::size_t, std::tuple_size_v<T>>>;
+        typename std::tuple_size<std::remove_cvref_t<T>>::type;
+        requires std::derived_from<std::tuple_size<std::remove_cvref_t<T>>,
+                                   std::integral_constant<std::size_t, std::tuple_size_v<std::remove_cvref_t<T>>>>;
       } && []<std::size_t... N>(std::index_sequence<N...>) -> auto
-  { return (details::has_tuple_element<T, N> && ...); }(std::make_index_sequence<std::tuple_size_v<T>>());
+  {
+    return (details::has_tuple_element<std::remove_cvref_t<T>, N> && ...);
+  }(std::make_index_sequence<std::tuple_size_v<std::remove_cvref_t<T>>>());
 
   template <typename T>
   concept array_like =
       tuple_like<T> &&
-      (std::ranges::range<T> || ((std::tuple_size_v<T> >= 1) && []<std::size_t... N>(std::index_sequence<N...>) -> auto
-                                 {
-                                   return (std::same_as<std::tuple_element_t<0, T>, std::tuple_element_t<N, T>> && ...);
-                                 }(std::make_index_sequence<std::tuple_size_v<T>>())));
+      (std::ranges::range<std::remove_cvref_t<T>> ||
+       ((std::tuple_size_v<std::remove_cvref_t<T>> >= 1) && []<std::size_t... N>(std::index_sequence<N...>) -> auto
+        {
+          return (
+              std::same_as<std::tuple_element_t<0, std::remove_cvref_t<T>>, std::tuple_element_t<N, std::remove_cvref_t<T>>> &&
+              ...);
+        }(std::make_index_sequence<std::tuple_size_v<std::remove_cvref_t<T>>>())));
 
   template <typename T, typename U, typename... V>
   concept same_as_either = std::same_as<T, U> || (std::same_as<T, V> || ...);
@@ -48,5 +54,6 @@ namespace sqlite_wrapper
   concept same_as_all = std::same_as<T, U> && (std::same_as<T, V> && ...);
 
   template <typename T>
-  concept bool_integral_constant = same_as_either<T, std::true_type, std::false_type>;;
+  concept boolean_constant = same_as_either<T, std::true_type, std::false_type>;
+  ;
 }  // namespace sqlite_wrapper
