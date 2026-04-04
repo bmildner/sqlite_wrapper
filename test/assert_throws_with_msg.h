@@ -23,9 +23,8 @@ namespace sqlite_wrapper::details
   [[nodiscard]] auto demangle(const char* name) -> std::string;
 
   template <typename ExpectedException, std::invocable Statement>
-  void assert_throws_with_msg(Statement statement, std::string_view statement_as_text,
-                                            std::optional<std::string>& what,
-                                            const std::source_location& location = std::source_location::current())
+  void assert_throws_with_msg(Statement statement, std::string_view statement_as_text, std::optional<std::string>& what,
+                              const std::source_location& location = std::source_location::current())
   {
     const auto line_number{static_cast<int>(location.line())};
     what.reset();
@@ -37,9 +36,9 @@ namespace sqlite_wrapper::details
                                                  << demangle(typeid(ExpectedException).name()) << ".\n"
                                                  << "  Actual: it throws nothing.";
     }
+    // we need to ignore testing::AssertionException because FAIL() might throw them!
     catch (const testing::AssertionException&)
     {
-      // we need to ignore testing::AssertionException because FAIL() might throw them!
       throw;
     }
     catch (const ExpectedException& e)
@@ -57,7 +56,7 @@ namespace sqlite_wrapper::details
       FAIL_AT(location.file_name(), line_number)
           << "Expected: \"" << statement_as_text << "\" to throw an exception of type "
           << demangle(typeid(ExpectedException).name()) << ".\n"
-          << "  Actual: it throws type " << sqlite_wrapper::details::demangle(typeid(e).name());
+          << "  Actual: it throws type " << demangle(typeid(e).name());
     }
     catch (...)
     {
@@ -80,11 +79,10 @@ namespace sqlite_wrapper::details
  * @param expected_exception exact type of exception that is expected to be thrown by std::invoke(statement)
  * @param matcher any gtest matcher that can be used with an std::string to validate the .what() of \p expected_exception
  */
-#define ASSERT_THROWS_WITH_MSG(statement, expected_exception, matcher)  /* NOLINT(*-macro-usage) */             \
-  {                                                                                                             \
-    std::optional<std::string> what;                                                                            \
-    if (sqlite_wrapper::details::assert_throws_with_msg<expected_exception>(statement, #statement, what); what) \
-    {                                                                                                           \
-      ASSERT_THAT(what.value(), matcher);                                                                       \
-    }                                                                                                           \
+#define ASSERT_THROWS_WITH_MSG(statement, expected_exception, matcher) /* NOLINT(*-macro-usage) */     \
+  {                                                                                                    \
+    std::optional<std::string> what;                                                                   \
+    sqlite_wrapper::details::assert_throws_with_msg<expected_exception>(statement, #statement, what);  \
+    ASSERT_TRUE(what.has_value());                                                                     \
+    ASSERT_THAT(what.value(), matcher);  /* NOLINT(bugprone-unchecked-optional-access) */              \
   }
