@@ -189,7 +189,7 @@ namespace
 
   void sqlite_wrapper_tests::TearDown()
   {
-    //    std::filesystem::remove(temp_db_file_name);
+    std::filesystem::remove(temp_db_file_name);
   }
 
   auto sqlite_wrapper_tests::set_up_test_database() -> ::sqlite_wrapper::database
