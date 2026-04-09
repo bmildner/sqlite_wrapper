@@ -16,7 +16,8 @@ set_target_properties(sqlite_wrapper.test_runner PROPERTIES OUTPUT_NAME "test_ru
 target_link_libraries(sqlite_wrapper.test_runner PRIVATE
     common_target_settings
     sqlite_wrapper::sqlite_wrapper
-    GTest::gtest)
+    GTest::gtest
+    GTest::gmock)
 
 add_executable(sqlite_wrapper.test_runner_mocked ${COMMON_SRCS} "sqlite_wrapper_tests_mocked.cpp")
 add_executable(sqlite_wrapper::test_runner_mocked ALIAS sqlite_wrapper.test_runner_mocked)

@@ -1,6 +1,9 @@
 #include "sqlite_wrapper/concepts.h"
 
+#include "sqlite_wrapper/sqlite_error.h"
+
 #include <array>
+#include <stdexcept>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -61,3 +64,7 @@ static_assert(sqlite_wrapper::boolean_constant<std::integral_constant<bool, fals
 static_assert(!sqlite_wrapper::boolean_constant<bool>);
 static_assert(!sqlite_wrapper::boolean_constant<int>);
 static_assert(!sqlite_wrapper::boolean_constant<std::integral_constant<int, 1>>);
+
+// test exception_with_stack_trace
+static_assert(sqlite_wrapper::exception_with_stack_trace<sqlite_wrapper::sqlite_error>);
+static_assert(!sqlite_wrapper::exception_with_stack_trace<std::runtime_error>);

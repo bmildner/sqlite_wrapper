@@ -445,11 +445,14 @@ namespace
 
     EXPECT_CALL(*get_mock(), sqlite3_finalize(&statement)).InSequence(sequence).WillOnce(Return(SQLITE_OK)).RetiresOnSaturation();
 
-    ASSERT_THROWS_WITH_MSG(
+    ASSERT_THROWS_WITH_MSG_AND_STACK(
         [&] { (void)sqlite_wrapper::create_prepared_statement(database.value, dummy_sql, std::forward<Params>(params)...); },
         sqlite_wrapper::sqlite_error,
         AllOf(StartsWith(sqlite_wrapper::format("failed to bind {} to index 1, failed with:", type)), HasSubstr(dummy_sql),
-              HasSubstr(sqlite_errstr), HasSubstr(error_message)));
+              HasSubstr(sqlite_errstr), HasSubstr(error_message)),
+        AllOf(sqlite_wrapper::stack_trace_contains_function("sqlite_wrapper::create_prepared_statement"),
+              sqlite_wrapper::stack_trace_contains_function_in("expect_and_create_statement_with_failed_binding",
+                                                               std::source_location::current().file_name())))
   }
 
   void sqlite_wrapper_mocked_tests::expect_sqlite_error_with_statement(const sqlite_wrapper::db_with_location& database,
@@ -518,20 +521,28 @@ TEST_F(sqlite_wrapper_mocked_tests, open_fails)
   EXPECT_CALL(*get_mock(), sqlite3_errstr(SQLITE_INTERNAL)).WillOnce(Return("SQLITE_INTERNAL"));
   EXPECT_CALL(*get_mock(), sqlite3_errstr(SQLITE_ERROR)).Times(2).WillRepeatedly(Return("SQLITE_ERROR"));
 
-  ASSERT_THROWS_WITH_MSG([] { (void)sqlite_wrapper::open(db_file_name); }, sqlite_wrapper::sqlite_error,
-                         AllOf(StartsWith(sqlite_wrapper::format("sqlite3_open() failed to open database \"{}\"", db_file_name)),
-                               HasSubstr("SQLITE_INTERNAL")));
+  ASSERT_THROWS_WITH_MSG_AND_STACK(
+      [] { (void)sqlite_wrapper::open(db_file_name); }, sqlite_wrapper::sqlite_error,
+      AllOf(StartsWith(sqlite_wrapper::format("sqlite3_open() failed to open database \"{}\"", db_file_name)),
+            HasSubstr("SQLITE_INTERNAL")),
+      AllOf(sqlite_wrapper::stack_trace_contains_function("sqlite_wrapper::open"),
+            sqlite_wrapper::stack_trace_contains_function_in("open_fails", std::source_location::current().file_name())));
 
-  ASSERT_THROWS_WITH_MSG(
+  ASSERT_THROWS_WITH_MSG_AND_STACK(
       [] { (void)sqlite_wrapper::open(db_file_name); }, sqlite_wrapper::sqlite_error,
       AllOf(StartsWith(sqlite_wrapper::format("sqlite3_open() returned nullptr for database \"{}\"", db_file_name)),
-            HasSubstr("SQLITE_ERROR")));
+            HasSubstr("SQLITE_ERROR")),
+      AllOf(sqlite_wrapper::stack_trace_contains_function("sqlite_wrapper::open"),
+            sqlite_wrapper::stack_trace_contains_function_in("open_fails", std::source_location::current().file_name())));
 
   constexpr sqlite_wrapper::open_flags bad_open_flags{to_underlying(sqlite_wrapper::open_flags::open_only) |
                                                       to_underlying(sqlite_wrapper::open_flags::open_or_create)};
 
-  ASSERT_THROWS_WITH_MSG([] { (void)sqlite_wrapper::open(db_file_name, bad_open_flags); }, sqlite_wrapper::sqlite_error,
-                         StartsWith(sqlite_wrapper::format("invalid open_flags value \"{}\"", bad_open_flags)));
+  ASSERT_THROWS_WITH_MSG_AND_STACK(
+      [] { (void)sqlite_wrapper::open(db_file_name, bad_open_flags); }, sqlite_wrapper::sqlite_error,
+      StartsWith(sqlite_wrapper::format("invalid open_flags value \"{}\"", bad_open_flags)),
+      AllOf(sqlite_wrapper::stack_trace_contains_function("sqlite_wrapper::open"),
+            sqlite_wrapper::stack_trace_contains_function_in("open_fails", std::source_location::current().file_name())));
 }
 
 // we can only thest this in release builds because there is an assert!
@@ -749,12 +760,15 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_fails)
   EXPECT_CALL(*get_mock(), sqlite3_errmsg(&database)).WillOnce(Return(sqlite_error_message));
   EXPECT_CALL(*get_mock(), sqlite3_errstr(SQLITE_MISUSE)).WillOnce(Return(sqlite_errstr));
 
-  ASSERT_THROWS_WITH_MSG(
+  ASSERT_THROWS_WITH_MSG_AND_STACK(
       [&] { (void)sqlite_wrapper::create_prepared_statement(&database, dummy_sql); }, sqlite_wrapper::sqlite_error,
-      AllOf(StartsWith("failed to create prepared statement"), HasSubstr(dummy_sql), HasSubstr(sqlite_errstr)));
+      AllOf(StartsWith("failed to create prepared statement"), HasSubstr(dummy_sql), HasSubstr(sqlite_errstr)),
+      AllOf(sqlite_wrapper::stack_trace_contains_function("sqlite_wrapper::create_prepared_statement"),
+            sqlite_wrapper::stack_trace_contains_function_in("create_prepared_statement_fails",
+                                                             std::source_location::current().file_name())));
 }
 
-TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_failes_with_nullptr)
+TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_fails_with_nullptr)
 {
   ::sqlite3 database{};
 
@@ -764,9 +778,12 @@ TEST_F(sqlite_wrapper_mocked_tests, create_prepared_statement_failes_with_nullpt
 
   EXPECT_CALL(*get_mock(), sqlite3_errmsg(&database)).WillOnce(Return(sqlite_error_message));
 
-  ASSERT_THROWS_WITH_MSG([&] { (void)sqlite_wrapper::create_prepared_statement(&database, dummy_sql); },
-                         sqlite_wrapper::sqlite_error,
-                         AllOf(StartsWith("failed to create prepared statement"), HasSubstr(dummy_sql)));
+  ASSERT_THROWS_WITH_MSG_AND_STACK(
+      [&] { (void)sqlite_wrapper::create_prepared_statement(&database, dummy_sql); }, sqlite_wrapper::sqlite_error,
+      AllOf(StartsWith("failed to create prepared statement"), HasSubstr(dummy_sql)),
+      AllOf(sqlite_wrapper::stack_trace_contains_function("sqlite_wrapper::create_prepared_statement"),
+            sqlite_wrapper::stack_trace_contains_function_in("create_prepared_statement_fails_with_nullptr",
+                                                             std::source_location::current().file_name())));
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, bind_value_null_fails)
@@ -833,9 +850,11 @@ TEST_F(sqlite_wrapper_mocked_tests, step_fails)
 
   expect_sqlite_error_with_statement(&database, &statement, sequence, error_message);
 
-  ASSERT_THROWS_WITH_MSG([&] { (void)sqlite_wrapper::step(&statement); }, sqlite_wrapper::sqlite_error,
-                         AllOf(StartsWith("failed to step, failed with:"), HasSubstr(dummy_sql), HasSubstr(sqlite_errstr),
-                               HasSubstr(error_message)));
+  ASSERT_THROWS_WITH_MSG_AND_STACK(
+      [&] { (void)sqlite_wrapper::step(&statement); }, sqlite_wrapper::sqlite_error,
+      AllOf(StartsWith("failed to step, failed with:"), HasSubstr(dummy_sql), HasSubstr(sqlite_errstr), HasSubstr(error_message)),
+      AllOf(sqlite_wrapper::stack_trace_contains_function("sqlite_wrapper::step"),
+            sqlite_wrapper::stack_trace_contains_function_in("step_fails", std::source_location::current().file_name())));
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, reset_and_rebind_prepared_statement_success)
@@ -874,10 +893,13 @@ TEST_F(sqlite_wrapper_mocked_tests, reset_and_rebind_prepared_statement_fails)
 
   expect_sqlite_error_with_statement(&database, &statement, sequence, error_message);
 
-  ASSERT_THROWS_WITH_MSG([&] { sqlite_wrapper::reset_and_rebind_prepared_statement(&statement, 4711); },
-                         sqlite_wrapper::sqlite_error,
-                         AllOf(StartsWith("sqlite3_clear_bindings() failed"), HasSubstr(dummy_sql), HasSubstr(sqlite_errstr),
-                               HasSubstr(error_message)));
+  ASSERT_THROWS_WITH_MSG_AND_STACK(
+      [&] { sqlite_wrapper::reset_and_rebind_prepared_statement(&statement, 4711); }, sqlite_wrapper::sqlite_error,
+      AllOf(StartsWith("sqlite3_clear_bindings() failed"), HasSubstr(dummy_sql), HasSubstr(sqlite_errstr),
+            HasSubstr(error_message)),
+      AllOf(sqlite_wrapper::stack_trace_contains_function("sqlite_wrapper::reset_and_rebind_prepared_statement"),
+            sqlite_wrapper::stack_trace_contains_function_in("reset_and_rebind_prepared_statement_fails",
+                                                             std::source_location::current().file_name())));
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, reset_prepared_statement_fails)
@@ -891,9 +913,12 @@ TEST_F(sqlite_wrapper_mocked_tests, reset_prepared_statement_fails)
   EXPECT_CALL(*get_mock(), sqlite3_reset(&statement)).InSequence(sequence).WillOnce(Return(SQLITE_MISUSE));
   expect_sqlite_error_with_statement(&database, &statement, sequence, error_message);
 
-  ASSERT_THROWS_WITH_MSG([&] { sqlite_wrapper::reset_prepared_statement(&statement); }, sqlite_wrapper::sqlite_error,
+  ASSERT_THROWS_WITH_MSG_AND_STACK([&] { sqlite_wrapper::reset_prepared_statement(&statement); }, sqlite_wrapper::sqlite_error,
                          AllOf(StartsWith("sqlite3_reset() failed to reset statement"), HasSubstr(dummy_sql),
-                               HasSubstr(sqlite_errstr), HasSubstr(error_message)));
+                               HasSubstr(sqlite_errstr), HasSubstr(error_message)),
+                               AllOf(sqlite_wrapper::stack_trace_contains_function("sqlite_wrapper::reset_prepared_statement"),
+                                     sqlite_wrapper::stack_trace_contains_function_in("reset_prepared_statement_fails",
+                                                                                      std::source_location::current().file_name())));
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, get_row_basic_db_types_success)
@@ -941,9 +966,12 @@ TEST_F(sqlite_wrapper_mocked_tests, get_row_basic_db_types_fails_with_null_value
     force_null_array.at(index) = true;
     expect_row(&statement, expected_row, force_null_array);
 
-    ASSERT_THROWS_WITH_MSG([&] { (void)sqlite_wrapper::get_row<row_type>(&statement); }, sqlite_wrapper::sqlite_error,
+    ASSERT_THROWS_WITH_MSG_AND_STACK([&] { (void)sqlite_wrapper::get_row<row_type>(&statement); }, sqlite_wrapper::sqlite_error,
                            AllOf(StartsWith(sqlite_wrapper::format("column at index {} must not be NULL, failed with:", index)),
-                                 HasSubstr(dummy_sql), HasSubstr(sqlite_errstr), HasSubstr(error_message_column_query_failed)));
+                                 HasSubstr(dummy_sql), HasSubstr(sqlite_errstr), HasSubstr(error_message_column_query_failed)),
+                                 AllOf(sqlite_wrapper::stack_trace_contains_function("sqlite_wrapper::get_row"),
+                                       sqlite_wrapper::stack_trace_contains_function_in("get_row_basic_db_types_fails_with_null_value",
+                                                                                        std::source_location::current().file_name())));
   }
 }
 
@@ -985,12 +1013,16 @@ TEST_F(sqlite_wrapper_mocked_tests, get_row_basic_db_types_fails_with_value_type
               expect_sqlite_error_with_statement(&database, &statement, sequence, error_message_column_query_failed,
                                                  SQLITE_MISMATCH);
 
-              ASSERT_THROWS_WITH_MSG(
+              ASSERT_THROWS_WITH_MSG_AND_STACK(
                   [&] { (void)sqlite_wrapper::get_row<Row>(&statement); }, sqlite_wrapper::sqlite_error,
-                  AllOf(StartsWith(sqlite_wrapper::format("column at index 0 has type {}, expected {}",
-                                                          sqlite_wrapper::details::sqlite_type_to_string(test_parameter_list.at(index).first),
-                                                          sqlite_wrapper::details::sqlite_type_to_string(test_parameter_list.at(index).second))),
-                        HasSubstr(dummy_sql), HasSubstr(sqlite_errstr), HasSubstr(error_message_column_query_failed)));
+                  AllOf(StartsWith(sqlite_wrapper::format(
+                            "column at index 0 has type {}, expected {}",
+                            sqlite_wrapper::details::sqlite_type_to_string(test_parameter_list.at(index).first),
+                            sqlite_wrapper::details::sqlite_type_to_string(test_parameter_list.at(index).second))),
+                        HasSubstr(dummy_sql), HasSubstr(sqlite_errstr), HasSubstr(error_message_column_query_failed)),
+                        AllOf(sqlite_wrapper::stack_trace_contains_function("sqlite_wrapper::get_row"),
+                              sqlite_wrapper::stack_trace_contains_function_in("get_row_basic_db_types_fails_with_value_type_missmatch",
+                                                                               std::source_location::current().file_name())));
             }};
 
         ((test_implementation(rows), ++index), ...);
@@ -1012,10 +1044,13 @@ TEST_F(sqlite_wrapper_mocked_tests, get_row_for_string_fails_with_nullptr)
 
   expect_sqlite_error_with_statement(&database, &statement, sequence, error_message_column_query_failed, SQLITE_NOMEM);
 
-  ASSERT_THROWS_WITH_MSG([&] { (void)sqlite_wrapper::get_row<std::tuple<std::string>>(&statement); },
+  ASSERT_THROWS_WITH_MSG_AND_STACK([&] { (void)sqlite_wrapper::get_row<std::tuple<std::string>>(&statement); },
                          sqlite_wrapper::sqlite_error,
                          AllOf(StartsWith("sqlite3_column_text() for index 0 returned nullptr"), HasSubstr(dummy_sql),
-                               HasSubstr(sqlite_errstr), HasSubstr(error_message_column_query_failed)));
+                               HasSubstr(sqlite_errstr), HasSubstr(error_message_column_query_failed)),
+                               AllOf(sqlite_wrapper::stack_trace_contains_function("sqlite_wrapper::get_row"),
+                                     sqlite_wrapper::stack_trace_contains_function_in("get_row_for_string_fails_with_nullptr",
+                                                                                      std::source_location::current().file_name())));
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, get_row_for_blob_fails_with_nullptr)
@@ -1032,10 +1067,13 @@ TEST_F(sqlite_wrapper_mocked_tests, get_row_for_blob_fails_with_nullptr)
 
   expect_sqlite_error_with_statement(&database, &statement, sequence, error_message_column_query_failed, SQLITE_NOMEM);
 
-  ASSERT_THROWS_WITH_MSG([&] { (void)sqlite_wrapper::get_row<std::tuple<sqlite_wrapper::byte_vector>>(&statement); },
+  ASSERT_THROWS_WITH_MSG_AND_STACK([&] { (void)sqlite_wrapper::get_row<std::tuple<sqlite_wrapper::byte_vector>>(&statement); },
                          sqlite_wrapper::sqlite_error,
                          AllOf(StartsWith("sqlite3_column_blob() for index 0 returned nullptr"), HasSubstr(dummy_sql),
-                               HasSubstr(sqlite_errstr), HasSubstr(error_message_column_query_failed)));
+                               HasSubstr(sqlite_errstr), HasSubstr(error_message_column_query_failed)),
+                               AllOf(sqlite_wrapper::stack_trace_contains_function("sqlite_wrapper::get_row"),
+                                     sqlite_wrapper::stack_trace_contains_function_in("get_row_for_blob_fails_with_nullptr",
+                                                                                      std::source_location::current().file_name())));
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, get_rows_success)
@@ -1108,9 +1146,12 @@ TEST_F(sqlite_wrapper_mocked_tests, execute_no_data_fails_with_data_row)
   EXPECT_CALL(*get_mock(), sqlite3_errmsg(&database)).InSequence(sequence).WillOnce(Return(error_message));
   EXPECT_CALL(*get_mock(), sqlite3_finalize(&statement)).InSequence(sequence).WillOnce(Return(SQLITE_OK));
 
-  ASSERT_THROWS_WITH_MSG(
+  ASSERT_THROWS_WITH_MSG_AND_STACK(
       [&] { sqlite_wrapper::execute_no_data(&database, dummy_sql); }, sqlite_wrapper::sqlite_error,
-      AllOf(StartsWith("unexpected data row in execute_no_data(), failed with: execute_no_data failed"), HasSubstr(dummy_sql)));
+      AllOf(StartsWith("unexpected data row in execute_no_data(), failed with: execute_no_data failed"), HasSubstr(dummy_sql)),
+      AllOf(sqlite_wrapper::stack_trace_contains_function("sqlite_wrapper::execute_no_data"),
+            sqlite_wrapper::stack_trace_contains_function_in("execute_no_data_fails_with_data_row",
+                                                             std::source_location::current().file_name())));
 }
 
 TEST_F(sqlite_wrapper_mocked_tests, execute_with_and_wo_limits_success)

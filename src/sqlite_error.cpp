@@ -6,9 +6,12 @@
 #include <sqlite3.h>
 
 #include <cassert>
+#include <cstdint>
+#include <stacktrace>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace sqlite_wrapper
 {
@@ -48,21 +51,44 @@ namespace sqlite_wrapper
     }
   }  // unnamed namespace
 
-  sqlite_error::sqlite_error(std::string_view what, const db_with_location& database, int error)
+  sqlite_error::sqlite_error(std::string_view what, const db_with_location& database, int error, std::stacktrace&& stacktrace)
       : std::runtime_error(
             sqlite_wrapper::format("{}, failed with: {} in {}", what, error_to_string(database.value, error), database.location)),
-        m_location(database.location)
-  {}
+        m_location(database.location),
+        m_stacktrace(std::move(stacktrace))
+  {
+  }
 
-  sqlite_error::sqlite_error(std::string_view what, const stmt_with_location& stmt, int error)
+  sqlite_error::sqlite_error(std::string_view what, const stmt_with_location& stmt, int error, std::stacktrace&& stacktrace)
       : std::runtime_error(
             sqlite_wrapper::format("{}, failed with: {} in {}", what, error_to_string(stmt.value, error), stmt.location)),
-        m_location(stmt.location)
-  {}
+        m_location(stmt.location),
+        m_stacktrace(std::move(stacktrace))
+  {
+  }
 
   auto sqlite_error::where() const -> const std::source_location&
   {
     return m_location;
+  }
+
+  auto sqlite_error::stack_trace() const -> const std::stacktrace&
+  {
+    return m_stacktrace;
+  }
+
+  auto get_stack_trace([[maybe_unused]] std::uint16_t skip) noexcept -> std::stacktrace
+  {
+    if constexpr (are_stack_traces_supported())
+    {
+      try
+      {
+        return std::stacktrace::current(skip);
+      }
+      catch (...)  // NOLINT(bugprone-empty-catch)
+      {}
+    }
+    return std::stacktrace{};
   }
 
 }  // namespace sqlite_wrapper

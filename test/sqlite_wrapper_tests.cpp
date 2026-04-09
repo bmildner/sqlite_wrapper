@@ -267,11 +267,11 @@ TEST_F(sqlite_wrapper_tests, test_open)
   }
 }
 
-TEST_F(sqlite_wrapper_tests, test_open_failes)
+TEST_F(sqlite_wrapper_tests, test_open_fails)
 {
   std::source_location location{};
 
-  ASSERT_THROWS_WITH_MSG(
+  ASSERT_THROWS_WITH_MSG_AND_STACK(
       [&]
       {
         location = std::source_location::current();
@@ -279,7 +279,9 @@ TEST_F(sqlite_wrapper_tests, test_open_failes)
       },
       sqlite_wrapper::sqlite_error,
       AllOf(StartsWith("sqlite3_open() failed to open database"), HasSubstr("failed with: unable to open database file"),
-            HasSubstr(temp_db_file_name.string()), HasSubstr(location.file_name()), HasSubstr(location.function_name())));
+            HasSubstr(temp_db_file_name.string()), HasSubstr(location.file_name()), HasSubstr(location.function_name())),
+      AllOf(sqlite_wrapper::stack_trace_contains_function("sqlite_wrapper::open"),
+            sqlite_wrapper::stack_trace_contains_function_in("test_open_fails", std::source_location::current().file_name())));
 }
 
 TEST_F(sqlite_wrapper_tests, test_open_failes_get_location)

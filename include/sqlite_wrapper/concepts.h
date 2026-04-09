@@ -1,6 +1,7 @@
 #pragma once
 
 #include <concepts>
+#include <exception>
 #include <ranges>
 #include <tuple>
 #include <type_traits>
@@ -55,5 +56,7 @@ namespace sqlite_wrapper
 
   template <typename T>
   concept boolean_constant = same_as_either<T, std::true_type, std::false_type>;
-  ;
+
+  template <typename T>
+  concept exception_with_stack_trace = std::derived_from<T, std::exception> && requires(T exception) { exception.stack_trace(); };
 }  // namespace sqlite_wrapper

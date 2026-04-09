@@ -1,9 +1,19 @@
 add_library(common_target_settings INTERFACE)
 
 set_target_properties(common_target_settings PROPERTIES POSITION_INDEPENDENT_CODE ON)
-set_target_properties(common_target_settings PROPERTIES VISIBILITY_INLINES_HIDDEN ON)
 set_target_properties(common_target_settings PROPERTIES C_VISIBILITY_PRESET hidden)
 set_target_properties(common_target_settings PROPERTIES CXX_VISIBILITY_PRESET hidden)
+set_target_properties(common_target_settings PROPERTIES VISIBILITY_INLINES_HIDDEN ON)
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(ENABLE_STACK_TRACES ON CACHE BOOL "Enables collection of stack traces in exceptions" FORCE)
+else()
+  set(ENABLE_STACK_TRACES OFF CACHE BOOL "Enables collection of stack traces in exceptions" FORCE)
+endif()
+
+if (ENABLE_STACK_TRACES)
+  target_compile_definitions(common_target_settings INTERFACE SQLITE_WRAPPER_STACK_TRACE)
+endif ()
 
 if (DEFINED MSVC)
   # remove all /W options to avoid warnings due to multiple /W ...
@@ -19,6 +29,9 @@ if (DEFINED MSVC)
 
   # TODO: in Release mode the PDBs are not named correctly nor copied/generated in CMAKE_RUNTIME_OUTPUT_DIRECTORY
   set_target_properties(common_target_settings PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT ProgramDatabase)
+
+  # make sure the linker removes unreferenced functions and data, default of NOREF when generation debug infos!
+  target_link_options(common_target_settings INTERFACE /OPT:REF)
 else()
   target_compile_options(common_target_settings INTERFACE -Wall -Wextra -Wpedantic -Wformat -Wformat=2 -Wconversion -Wsign-conversion -Wfloat-conversion -Wtrampolines -Wimplicit-fallthrough)
   target_compile_options(common_target_settings INTERFACE -fstack-clash-protection -fstack-protector-strong -fcf-protection=full -fno-delete-null-pointer-checks -fno-strict-aliasing)
@@ -26,9 +39,14 @@ else()
 
   target_link_options(common_target_settings INTERFACE LINKER:-z,nodlopen LINKER:-z,noexecstack LINKER:-z,relro LINKER:-z,now)
 
+  # stack trace support with GCC
+  if (ENABLE_STACK_TRACES)
+    target_link_libraries(common_target_settings INTERFACE stdc++exp)
+  endif ()
+
   if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_options(common_target_settings INTERFACE -D_FORTIFY_SOURCE=1)
-    target_compile_options(common_target_settings INTERFACE -D_GLIBCXX_ASSERTIONS)
+    target_compile_definitions(common_target_settings INTERFACE _FORTIFY_SOURCE=1)
+    target_compile_definitions(common_target_settings INTERFACE _GLIBCXX_ASSERTIONS)
 
     if (GCOVR)
       target_compile_options(common_target_settings INTERFACE --coverage -g -O0)
