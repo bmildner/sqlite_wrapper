@@ -118,7 +118,7 @@ namespace sqlite_wrapper
     [[maybe_unused]] std::optional<std::stacktrace> stack_trace;                                                   \
     sqlite_wrapper::details::assert_throws_with_msg<expected_exception>(statement, #statement, what, stack_trace); \
     ASSERT_TRUE(what.has_value());                                                                                 \
-    ASSERT_THAT(*what, msg_matcher);                                             /* NOLINT(bugprone-unchecked-optional-access) */                                  \
+    ASSERT_THAT(*what, msg_matcher);                                                                                    \
   }
 
 /**
@@ -141,9 +141,9 @@ namespace sqlite_wrapper
   {                                                                                                                \
     std::optional<std::string> what;                                                                               \
     std::optional<std::stacktrace> stack_trace;                                                                    \
-    sqlite_wrapper::details::assert_throws_with_msg<expected_exception>(statement, #statement, what, stack_trace); \
-    ASSERT_TRUE(what.has_value());                                                                                 \
-    ASSERT_THAT(*what, msg_matcher);                                                 /* NOLINT(bugprone-unchecked-optional-access) */                              \
+    sqlite_wrapper::details::assert_throws_with_msg<expected_exception>(statement, #statement, what, stack_trace);  \
+    ASSERT_TRUE(what.has_value());                                                                                  \
+    ASSERT_THAT(*what, msg_matcher);                                                                                \
     if constexpr (sqlite_wrapper::are_stack_traces_supported())                                                    \
     {                                                                                                              \
       ASSERT_TRUE(stack_trace.has_value()) << "Expected a stack trace to be captured!";                            \

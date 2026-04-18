@@ -2,5 +2,6 @@
 Checks: '-modernize-use-trailing-return-type,
   -*-special-member-functions,
   -readability-function-cognitive-complexity,
-  -*-magic-numbers'
+  -*-magic-numbers,
+  -bugprone-unchecked-optional-access'
 InheritParentConfig: true
