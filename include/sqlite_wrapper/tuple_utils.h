@@ -181,8 +181,15 @@ namespace sqlite_wrapper
   {
     using array_type =
         std::array<std::tuple_element_t<0, std::remove_cvref_t<Tuple>>, std::tuple_size_v<std::remove_cvref_t<Tuple>>>;
+#if defined(_MSC_VER) && !defined(__clang__)
+# pragma warning(push)
+# pragma warning(disable : 4702)  // unreachable code warning, false positive?
+#endif
     return std::apply([]<typename... T>(T&&... elements) -> auto { return array_type{std::forward<T>(elements)...}; },
                       std::forward<Tuple>(tuple));
+#if defined(_MSC_VER) && !defined(__clang__)
+# pragma warning(pop)
+#endif
   }
 
 }  // namespace sqlite_wrapper
