@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <iostream>
+#include <limits>
 #include <optional>
 #include <random>
 #include <source_location>
@@ -74,12 +75,13 @@ namespace
   void random_data_generator::generate_random_column([[maybe_unused]] std::size_t string_and_blob_size_limit,
                                                      std::int64_t& column)
   {
-    column = std::uniform_int_distribution<std::int64_t>()(m_rng);
+    column = std::uniform_int_distribution<std::int64_t>(std::numeric_limits<std::int64_t>::min(),
+                                                         std::numeric_limits<std::int64_t>::max())(m_rng);
   }
 
   void random_data_generator::generate_random_column([[maybe_unused]] std::size_t string_and_blob_size_limit, double& column)
   {
-    column = std::uniform_real_distribution()(m_rng);
+    column = std::uniform_real_distribution(std::numeric_limits<double>::min(), std::numeric_limits<double>::max())(m_rng);
   }
 
   void random_data_generator::generate_random_column(std::size_t string_and_blob_size_limit, sqlite_wrapper::byte_vector& column)
@@ -115,6 +117,10 @@ namespace
     {
       column.emplace();
       generate_random_column(string_and_blob_size_limit, *column);
+    }
+    else
+    {
+      column.reset();
     }
   }
 
@@ -152,6 +158,7 @@ namespace
   class sqlite_wrapper_tests : public Test
   {
    public:
+    static constexpr auto select_all_from_test_table{"SELECT * FROM Test"sv};
     static const std::filesystem::path temp_db_file_name;
 
     sqlite_wrapper_tests() = default;
@@ -318,8 +325,6 @@ TEST_F(sqlite_wrapper_tests, test_simple_select_query)
 {
   const auto database{set_up_test_database()};
   const auto rows{fill_test_database(database.get())};
-
-  constexpr auto select_all_from_test_table{"SELECT * FROM Test"sv};
 
   const auto stmt{sqlite_wrapper::create_prepared_statement(database.get(), select_all_from_test_table)};
 
