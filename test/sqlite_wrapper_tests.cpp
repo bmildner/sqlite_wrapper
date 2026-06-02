@@ -410,8 +410,6 @@ TEST_F(sqlite_wrapper_tests, test_simple_select_query_alternative_types)
   const auto database{set_up_test_database()};
   const auto rows{alternative_fill_test_database(database.get())};
 
-  constexpr auto select_all_from_test_table{"SELECT * FROM Test"sv};
-
   const auto stmt{sqlite_wrapper::create_prepared_statement(database.get(), select_all_from_test_table)};
 
   auto row_iter{rows.second.cbegin()};
