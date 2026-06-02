@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -38,7 +39,8 @@ namespace
   class random_data_generator
   {
    public:
-    static constexpr std::size_t default_string_and_blob_size_limit{50};
+    static constexpr std::size_t default_string_and_blob_size_limit{250};
+    static constexpr std::size_t default_row_count{100};
 
     random_data_generator() = default;
 
@@ -48,9 +50,6 @@ namespace
 
     template <sqlite_wrapper::row_type Row>
     [[nodiscard]] auto generate_random_rows(std::size_t row_count, std::size_t string_and_blob_size_limit) -> std::vector<Row>;
-
-    template <sqlite_wrapper::row_type Row>
-    [[nodiscard]] auto generate_random_rows(std::size_t row_count) -> std::vector<Row>;
 
    private:
     void generate_random_column(std::size_t string_and_blob_size_limit, std::int64_t& column);
@@ -75,17 +74,30 @@ namespace
   void random_data_generator::generate_random_column([[maybe_unused]] std::size_t string_and_blob_size_limit,
                                                      std::int64_t& column)
   {
-    column = std::uniform_int_distribution<std::int64_t>(std::numeric_limits<std::int64_t>::min(),
-                                                         std::numeric_limits<std::int64_t>::max())(m_rng);
+    static auto dist{
+        std::uniform_int_distribution(std::numeric_limits<std::int64_t>::min(), std::numeric_limits<std::int64_t>::max())};
+    column = dist(m_rng);
   }
 
   void random_data_generator::generate_random_column([[maybe_unused]] std::size_t string_and_blob_size_limit, double& column)
   {
-    column = std::uniform_real_distribution(std::numeric_limits<double>::min(), std::numeric_limits<double>::max())(m_rng);
+    static auto bool_dist{std::uniform_int_distribution(0, 1)};
+    static auto double_dist_pos{std::uniform_real_distribution(0.0, std::numeric_limits<double>::max())};
+    static auto double_dist_neg{std::uniform_real_distribution(std::numeric_limits<double>::lowest(), 0.0)};
+
+    if (bool_dist(m_rng) != 0)
+    {
+      column = double_dist_pos(m_rng);
+    }
+    else
+    {
+      column = double_dist_neg(m_rng);
+    }
   }
 
   void random_data_generator::generate_random_column(std::size_t string_and_blob_size_limit, sqlite_wrapper::byte_vector& column)
   {
+    static auto dist{std::uniform_int_distribution<unsigned short>(0x00, 0xff)};
     const auto size = std::uniform_int_distribution<std::size_t>(1, string_and_blob_size_limit)(m_rng);
 
     column.resize(size);
@@ -94,26 +106,27 @@ namespace
                           {
                             // apparently std::uniform_int_distribution can not be used with "char, signed char, unsigned char,
                             // char8_t, int8_t, and uint8_t"
-                            return static_cast<sqlite_wrapper::byte_vector::value_type>(
-                                std::uniform_int_distribution<unsigned short>(0x00, 0xff)(m_rng));
+                            return static_cast<sqlite_wrapper::byte_vector::value_type>(dist(m_rng));
                           });
   }
 
   void random_data_generator::generate_random_column(std::size_t string_and_blob_size_limit, std::string& column)
   {
+    static auto dist{std::uniform_int_distribution<unsigned short>('0', 'z')};
     const auto size = std::uniform_int_distribution<std::size_t>(1, string_and_blob_size_limit)(m_rng);
 
     column.resize(size);
     // apparently std::uniform_int_distribution can not be used with "char, signed char, unsigned char, char8_t, int8_t, and
     // uint8_t"
     std::ranges::generate(column,
-                          [&]() { return static_cast<char>(std::uniform_int_distribution<unsigned short>('0', 'z')(m_rng)); });
+                          [&]() { return static_cast<char>(dist(m_rng)); });
   }
 
   template <sqlite_wrapper::optional_database_type OptionalColumn>
   void random_data_generator::generate_random_column(std::size_t string_and_blob_size_limit, OptionalColumn& column)
   {
-    if (std::uniform_int_distribution(0, 1)(m_rng))
+    static auto bool_dist{std::uniform_int_distribution(0, 1)};
+    if (bool_dist(m_rng) != 0)
     {
       column.emplace();
       generate_random_column(string_and_blob_size_limit, *column);
@@ -149,12 +162,6 @@ namespace
     return rows;
   }
 
-  template <sqlite_wrapper::row_type Row>
-  auto random_data_generator::generate_random_rows(std::size_t row_count) -> std::vector<Row>
-  {
-    return generate_random_rows<Row>(row_count, default_string_and_blob_size_limit);
-  }
-
   class sqlite_wrapper_tests : public Test
   {
    public:
@@ -177,12 +184,32 @@ namespace
     using row_type = std::tuple<std::int64_t, std::string, double, sqlite_wrapper::byte_vector, std::optional<std::int64_t>,
                                 std::optional<std::string>, std::optional<double>, std::optional<sqlite_wrapper::byte_vector>>;
 
+    using alternative_row_type_view =
+        std::tuple<std::uint32_t, std::string_view, float, sqlite_wrapper::const_byte_span, std::optional<int>,
+                   std::optional<std::string_view>, std::optional<float>, std::optional<sqlite_wrapper::const_byte_span>>;
+    using alternative_row_type_data =
+        std::tuple<std::uint32_t, std::string, float, sqlite_wrapper::byte_vector, std::optional<int>, std::optional<std::string>,
+                   std::optional<float>, std::optional<sqlite_wrapper::byte_vector>>;
+
+    static constexpr auto insert_into_test_table_sql{
+        R"(INSERT INTO "Test" ("Int", "String", "Double", "Blob", "OptInt", "OptString", "OptDouble", "OptBlob") VALUES (?, ?, ?, ?, ?, ?, ?, ?))"sv};
+
     [[nodiscard]] static auto set_up_test_database() -> sqlite_wrapper::database;
-    [[nodiscard]] static auto fill_test_database(sqlite_wrapper::db_with_location database, std::size_t row_count)
-        -> std::vector<row_type>;
+    [[nodiscard]] static auto fill_test_database(sqlite_wrapper::db_with_location database, std::size_t row_count,
+                                                 std::size_t string_and_blob_size_limit) -> std::vector<row_type>;
     [[nodiscard]] static auto fill_test_database(sqlite_wrapper::db_with_location database) -> std::vector<row_type>
     {
-      return fill_test_database(database, random_data_generator::default_string_and_blob_size_limit);
+      return fill_test_database(database, random_data_generator::default_row_count,
+                                random_data_generator::default_string_and_blob_size_limit);
+    }
+    [[nodiscard]] static auto alternative_fill_test_database(sqlite_wrapper::db_with_location database, std::size_t row_count,
+                                                             std::size_t string_and_blob_size_limit)
+        -> std::pair<std::vector<alternative_row_type_view>, std::vector<alternative_row_type_data>>;
+    [[nodiscard]] static auto alternative_fill_test_database(sqlite_wrapper::db_with_location database)
+        -> std::pair<std::vector<alternative_row_type_view>, std::vector<alternative_row_type_data>>
+    {
+      return alternative_fill_test_database(database, random_data_generator::default_row_count,
+                                            random_data_generator::default_string_and_blob_size_limit);
     }
   };
 
@@ -223,16 +250,13 @@ namespace
     return database;
   }
 
-  auto sqlite_wrapper_tests::fill_test_database(sqlite_wrapper::db_with_location database, std::size_t row_count)
-      -> std::vector<row_type>
+  auto sqlite_wrapper_tests::fill_test_database(sqlite_wrapper::db_with_location database, std::size_t row_count,
+                                                std::size_t string_and_blob_size_limit) -> std::vector<row_type>
   {
-    constexpr auto insert_into_test_table{
-        R"(INSERT INTO "Test" ("Int", "String", "Double", "Blob", "OptInt", "OptString", "OptDouble", "OptBlob") VALUES (?, ?, ?, ?, ?, ?, ?, ?))"};
-
     random_data_generator generator;
-    const auto rows{generator.generate_random_rows<row_type>(row_count)};
+    const auto rows{generator.generate_random_rows<row_type>(row_count, string_and_blob_size_limit)};
 
-    sqlite_wrapper::statement stmt{sqlite_wrapper::create_prepared_statement(database, insert_into_test_table)};
+    sqlite_wrapper::statement stmt{sqlite_wrapper::create_prepared_statement(database, insert_into_test_table_sql)};
 
     for (const auto& row : rows)
     {
@@ -242,6 +266,46 @@ namespace
     }
 
     return rows;
+  }
+
+  auto sqlite_wrapper_tests::alternative_fill_test_database(sqlite_wrapper::db_with_location database, std::size_t row_count,
+                                                            std::size_t string_and_blob_size_limit)
+      -> std::pair<std::vector<alternative_row_type_view>, std::vector<alternative_row_type_data>>
+  {
+    random_data_generator generator;
+    const auto rows{generator.generate_random_rows<row_type>(row_count, string_and_blob_size_limit)};
+
+    std::vector<alternative_row_type_data> alternative_row_data;
+    std::vector<alternative_row_type_view> alternative_rows_view;
+    alternative_row_data.reserve(rows.size());
+    alternative_rows_view.reserve(rows.size());
+
+    for (const auto& row : rows)
+    {
+      const auto& [int_val, string_val, double_val, blob_val, opt_int, opt_string, opt_double, opt_blob] = row;
+
+      auto& data = alternative_row_data.emplace_back(
+          static_cast<std::uint32_t>(int_val), string_val, static_cast<float>(double_val), blob_val,
+          opt_int ? std::optional<int>(static_cast<int>(*opt_int)) : std::nullopt, opt_string,
+          opt_double ? std::optional<float>(static_cast<float>(*opt_double)) : std::nullopt, opt_blob);
+
+      const auto& [u32_val, str, f_val, blob, opt_i, opt_str, opt_f, opt_blob_data] = data;
+      alternative_rows_view.emplace_back(
+          u32_val, std::string_view(str), f_val, sqlite_wrapper::const_byte_span(blob), opt_i,
+          opt_str ? std::optional<std::string_view>(*opt_str) : std::nullopt, opt_f,
+          opt_blob_data ? std::optional<sqlite_wrapper::const_byte_span>(*opt_blob_data) : std::nullopt);
+    }
+
+    sqlite_wrapper::statement stmt{sqlite_wrapper::create_prepared_statement(database, insert_into_test_table_sql)};
+
+    for (const auto& row : alternative_rows_view)
+    {
+      std::apply([&](const sqlite_wrapper::binding_type auto&... columns)
+                 { sqlite_wrapper::reset_and_rebind_prepared_statement(stmt.get(), columns...); }, row);
+      EXPECT_FALSE(sqlite_wrapper::step(stmt.get()));
+    }
+
+    return {std::move(alternative_rows_view), std::move(alternative_row_data)};
   }
 }  // unnamed namespace
 
@@ -338,5 +402,50 @@ TEST_F(sqlite_wrapper_tests, test_simple_select_query)
     ASSERT_NE(row_iter, rows.cend()) << "More rows returned from database than inserted!";
     ASSERT_EQ(row_id_iter++, row_id) << "Generated row id does not match expected value!";
     ASSERT_EQ(*(row_iter++), row) << "Returned row data does not match inserted row!";
+  }
+}
+
+TEST_F(sqlite_wrapper_tests, test_simple_select_query_alternative_types)
+{
+  const auto database{set_up_test_database()};
+  const auto rows{alternative_fill_test_database(database.get())};
+
+  constexpr auto select_all_from_test_table{"SELECT * FROM Test"sv};
+
+  const auto stmt{sqlite_wrapper::create_prepared_statement(database.get(), select_all_from_test_table)};
+
+  auto row_iter{rows.second.cbegin()};
+  std::int64_t row_id_iter{1};
+  while (sqlite_wrapper::step(stmt.get()))
+  {
+    using read_row_type = sqlite_wrapper::add_type_front<std::int64_t, row_type>;
+    const auto [row_id, row] = sqlite_wrapper::pop_front(sqlite_wrapper::get_row<read_row_type>(stmt.get()));
+
+    ASSERT_NE(row_iter, rows.second.cend()) << "More rows returned from database than inserted!";
+    ASSERT_EQ(row_id_iter++, row_id) << "Generated row id does not match expected value!";
+    ASSERT_EQ(*(row_iter++), row) << "Returned row data does not match inserted row!";
+  }
+}
+
+TEST_F(sqlite_wrapper_tests, test_simple_select_query_tuple_like_type)
+{
+  const auto database{set_up_test_database()};
+  const auto rows{fill_test_database(database.get())};
+
+  constexpr auto select_ints_from_test_table{"SELECT Id, Int FROM Test"sv};
+
+  const auto stmt{sqlite_wrapper::create_prepared_statement(database.get(), select_ints_from_test_table)};
+
+  auto row_iter{rows.cbegin()};
+  std::int64_t row_id_iter{1};
+  while (sqlite_wrapper::step(stmt.get()))
+  {
+    using read_row_type = std::array<std::int64_t, 2>;
+
+    const auto [column_id, column_int] = sqlite_wrapper::get_row<read_row_type>(stmt.get());
+
+    ASSERT_NE(row_iter, rows.cend()) << "More rows returned from database than inserted!";
+    ASSERT_EQ(row_id_iter++, column_id) << "Generated row id does not match expected value!";
+    ASSERT_EQ(std::get<0>(*(row_iter++)), column_int) << "Returned row data does not match inserted row!";
   }
 }

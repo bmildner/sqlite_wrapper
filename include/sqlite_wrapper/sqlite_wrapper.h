@@ -304,7 +304,7 @@ namespace sqlite_wrapper
   template <row_type Row>
   [[nodiscard]] auto get_row(const stmt_with_location& stmt) -> Row
   {
-    Row row;
+    Row row{};
 
     std::apply([&stmt](database_type auto&... columns) -> auto { details::get_row(stmt, columns...); }, row);
 
