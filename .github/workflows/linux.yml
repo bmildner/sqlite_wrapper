@@ -1,0 +1,123 @@
+name: Linux CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+concurrency:
+  group: linux-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+  # Route vcpkg's binary caching through the GitHub Actions cache (free on public repos).
+  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+
+jobs:
+  build:
+    name: ${{ matrix.toolset }}-${{ matrix.build-type }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        toolset: [ gcc14, gcc15 ]
+        build-type: [ debug, release ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up GHA cache creds for vcpkg
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Install base build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build ccache mold doxygen graphviz pipx
+
+      - name: Install gcc-14 / clang-tidy-20
+        if: matrix.toolset == 'gcc14'
+        run: |
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo apt-get update
+          sudo apt-get install -y gcc-14 g++-14
+          curl -fsSL https://apt.llvm.org/llvm.sh -o /tmp/llvm.sh
+          chmod +x /tmp/llvm.sh
+          sudo /tmp/llvm.sh 20
+          sudo apt-get install -y clang-tidy-20
+
+      - name: Install gcc-15 / clang-tidy-21
+        if: matrix.toolset == 'gcc15'
+        run: |
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo apt-get update
+          sudo apt-get install -y gcc-15 g++-15
+          curl -fsSL https://apt.llvm.org/llvm.sh -o /tmp/llvm.sh
+          chmod +x /tmp/llvm.sh
+          sudo /tmp/llvm.sh 21
+          sudo apt-get install -y clang-tidy-21
+
+      - name: Set up CMake >= 3.30
+        uses: lukka/get-cmake@latest
+
+      - name: Install gcovr
+        run: pipx install "gcovr>=8.4"
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ccache-${{ matrix.toolset }}-${{ matrix.build-type }}-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ matrix.toolset }}-${{ matrix.build-type }}-
+
+      - name: Bootstrap vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git "$VCPKG_ROOT"
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+
+      - name: Configure
+        run: |
+          if [ "${{ matrix.toolset }}" = gcc14 ]; then
+            PRESET="linux-${{ matrix.build-type }}-newest-toolset"
+            cmake --preset "$PRESET"
+          else
+            PRESET="linux-${{ matrix.build-type }}"
+            cmake --preset "$PRESET" \
+              -DCMAKE_C_COMPILER=gcc-15 -DCMAKE_CXX_COMPILER=g++-15 \
+              -DCLANG_TIDY=clang-tidy-21 -DGCOV=gcov-15
+          fi
+          echo "PRESET=$PRESET" >> "$GITHUB_ENV"
+
+      - name: Build
+        run: cmake --build --preset "$PRESET"
+
+      - name: Build documentation
+        run: cmake --build --preset "$PRESET" --target sqlite_wrapper.build_documentation
+
+      - name: Workaround ASan/ASLR incompatibility
+        if: matrix.build-type == 'debug'
+        run: sudo sysctl -w vm.mmap_rnd_bits=28
+
+      - name: Run tests + coverage gate (debug)
+        if: matrix.build-type == 'debug'
+        run: |
+          cmake --build --preset "$PRESET" --target sqlite_wrapper.coverage_report 2>&1 | tee cov.log
+          LINE=$(grep 'TOTAL' cov.log | tail -1 | awk '{print $NF}' | tr -d '%')
+          if [ -z "$LINE" ]; then
+            echo "ERROR: could not parse line coverage from gcovr output"
+            exit 1
+          fi
+          echo "Line coverage: ${LINE}%"
+          awk -v c="$LINE" 'BEGIN { if (c + 0 < 90) { print "ERROR: line coverage " c "% is below 90% threshold"; exit 1 } }'
+
+      - name: Run tests (release)
+        if: matrix.build-type == 'release'
+        run: cmake --build --preset "$PRESET" --target sqlite_wrapper.run_all_tests
