@@ -1,4 +1,4 @@
-name: Linux CI
+name: CI
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: linux-${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -18,16 +18,20 @@ env:
 
 jobs:
   build:
-    name: ${{ matrix.preset }}
-    runs-on: ubuntu-latest
+    name: "[${{ matrix.platform }}] ${{ matrix.preset }}"
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        preset:
-          - linux-debug
-          - linux-release
-          - linux-debug-newest-toolset
-          - linux-release-newest-toolset
+        include:
+          - { platform: Linux,   os: ubuntu-latest,  preset: linux-debug }
+          - { platform: Linux,   os: ubuntu-latest,  preset: linux-release }
+          - { platform: Linux,   os: ubuntu-latest,  preset: linux-debug-newest-toolset }
+          - { platform: Linux,   os: ubuntu-latest,  preset: linux-release-newest-toolset }
+          - { platform: Windows, os: windows-latest, preset: x64-debug,   arch: amd64 }
+          - { platform: Windows, os: windows-latest, preset: x64-release, arch: amd64 }
+          - { platform: Windows, os: windows-latest, preset: x86-debug,   arch: x86 }
+          - { platform: Windows, os: windows-latest, preset: x86-release, arch: x86 }
 
     steps:
       - name: Checkout
@@ -41,12 +45,13 @@ jobs:
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
       - name: Install base build tools
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build ccache mold doxygen graphviz pipx
 
       - name: Install default toolchain
-        if: ${{ !contains(matrix.preset, 'newest-toolset') }}
+        if: runner.os == 'Linux' && !contains(matrix.preset, 'newest-toolset')
         run: |
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get update
@@ -57,7 +62,7 @@ jobs:
           sudo apt-get install -y clang-tidy-20
 
       - name: Install newest toolchain
-        if: ${{ contains(matrix.preset, 'newest-toolset') }}
+        if: runner.os == 'Linux' && contains(matrix.preset, 'newest-toolset')
         run: |
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get update
@@ -67,13 +72,28 @@ jobs:
           sudo /tmp/llvm.sh 21
           sudo apt-get install -y clang-tidy-21
 
+      - name: Set up MSVC dev environment
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+
       - name: Set up CMake >= 3.30
         uses: lukka/get-cmake@latest
 
+      - name: Restore our own VCPKG_ROOT
+        # msvc-dev-cmd's vcvarsall sets VCPKG_ROOT to the VS-bundled vcpkg and
+        # exports it via GITHUB_ENV, clobbering the job-level env above.
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: echo "VCPKG_ROOT=${{ github.workspace }}/vcpkg" >> $env:GITHUB_ENV
+
       - name: Install gcovr
+        if: runner.os == 'Linux'
         run: pipx install "gcovr>=8.4"
 
       - name: Cache ccache
+        if: runner.os == 'Linux'
         uses: actions/cache@v4
         with:
           path: ~/.cache/ccache
@@ -81,10 +101,18 @@ jobs:
           restore-keys: |
             ccache-${{ matrix.preset }}-
 
-      - name: Bootstrap vcpkg
+      - name: Bootstrap vcpkg (Linux)
+        if: runner.os == 'Linux'
         run: |
           git clone https://github.com/microsoft/vcpkg.git "$VCPKG_ROOT"
           "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+
+      - name: Bootstrap vcpkg (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git "$env:VCPKG_ROOT"
+          & "$env:VCPKG_ROOT/bootstrap-vcpkg.bat" -disableMetrics
 
       - name: Configure
         run: cmake --preset "${{ matrix.preset }}"
@@ -93,14 +121,15 @@ jobs:
         run: cmake --build --preset "${{ matrix.preset }}"
 
       - name: Build documentation
+        if: runner.os == 'Linux'
         run: cmake --build --preset "${{ matrix.preset }}" --target sqlite_wrapper.build_documentation
 
       - name: Workaround ASan/ASLR incompatibility
-        if: contains(matrix.preset, 'debug')
+        if: runner.os == 'Linux' && contains(matrix.preset, 'debug')
         run: sudo sysctl -w vm.mmap_rnd_bits=28
 
       - name: Run tests + coverage gate (debug)
-        if: contains(matrix.preset, 'debug')
+        if: runner.os == 'Linux' && contains(matrix.preset, 'debug')
         run: |
           cmake --build --preset "${{ matrix.preset }}" --target sqlite_wrapper.coverage_report 2>&1 | tee cov.log
           LINE=$(grep 'TOTAL' cov.log | tail -1 | awk '{print $NF}' | tr -d '%')
@@ -112,5 +141,9 @@ jobs:
           awk -v c="$LINE" 'BEGIN { if (c + 0 < 90) { print "ERROR: line coverage " c "% is below 90% threshold"; exit 1 } }'
 
       - name: Run tests (release)
-        if: contains(matrix.preset, 'release')
+        if: runner.os == 'Linux' && contains(matrix.preset, 'release')
+        run: cmake --build --preset "${{ matrix.preset }}" --target sqlite_wrapper.run_all_tests
+
+      - name: Run tests (Windows)
+        if: runner.os == 'Windows'
         run: cmake --build --preset "${{ matrix.preset }}" --target sqlite_wrapper.run_all_tests
