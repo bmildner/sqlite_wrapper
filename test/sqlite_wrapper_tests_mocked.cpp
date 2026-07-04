@@ -485,20 +485,18 @@ namespace
 
   auto to_byte_vector(std::string_view str) -> sqlite_wrapper::byte_vector
   {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    return {reinterpret_cast<const std::byte*>(str.data()), reinterpret_cast<const std::byte*>(str.data() + str.size())};
+    const auto bytes{std::as_bytes(std::span{str})};
+    return {bytes.begin(), bytes.end()};
   }
 
   auto to_const_byte_span(std::string_view str) -> sqlite_wrapper::const_byte_span
   {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    return {reinterpret_cast<const std::byte*>(str.data()), str.size()};
+    return std::as_bytes(std::span{str});
   }
 
   auto to_byte_span(std::string& str) -> std::span<std::byte>
   {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    return {reinterpret_cast<std::byte*>(str.data()), str.size()};
+    return std::as_writable_bytes(std::span{str});
   }
 }  // unnamed namespace
 
