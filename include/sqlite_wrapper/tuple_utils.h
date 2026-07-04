@@ -141,19 +141,22 @@ namespace sqlite_wrapper
     requires(std::tuple_size_v<std::remove_cvref_t<Tuple>> >= 1)
   [[nodiscard]] constexpr auto pop_front(Tuple&& tuple) -> auto
   {
-    return std::make_pair(std::forward_like<Tuple>(std::get<0>(tuple)),
+    auto& first_element = std::get<0>(tuple);
+    return std::make_pair(std::forward_like<Tuple>(first_element),
                           std::apply([]<typename... T>(auto&&, T&&... rest) -> auto
                                      { return std::make_tuple(std::forward<T>(rest)...); }, std::forward<Tuple>(tuple)));
   }
 
   template <tuple_like Tuple>
     requires(std::tuple_size_v<std::remove_cvref_t<Tuple>> >= 1)
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward) we forward each element in the tuple by its own here!
   [[nodiscard]] constexpr auto pop_back(Tuple&& tuple) -> auto
   {
-    return std::make_pair(std::forward_like<Tuple>(std::get<std::tuple_size_v<std::remove_cvref_t<Tuple>> - 1>(tuple)),
+    auto& last_element = std::get<std::tuple_size_v<std::remove_cvref_t<Tuple>> - 1>(tuple);
+    return std::make_pair(std::forward_like<Tuple>(last_element),
                           [&]<std::size_t... I>(std::index_sequence<I...>) -> auto
                           {
-                            return std::make_tuple(std::get<I>(std::forward<Tuple>(tuple))...);
+                            return std::make_tuple(std::forward_like<Tuple>(std::get<I>(tuple))...);
                           }(std::make_index_sequence<std::tuple_size_v<std::remove_cvref_t<Tuple>> - 1>()));
   }
 
