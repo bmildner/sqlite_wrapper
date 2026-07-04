@@ -10,5 +10,8 @@ if ((ENABLE_STATIC_ANALYSIS) AND (NOT DEFINED MSVC))
   endif ()
 
   # enable clang-tidy
-  set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY}; -extra-arg=-Wno-unknown-warning-option; -extra-arg=-Wno-ignored-optimization-argument)
+  set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY};
+      -extra-arg=-Wno-unknown-warning-option;
+      -extra-arg=-Wno-ignored-optimization-argument;
+      -extra-arg=-fno-builtin-std-forward_like)  # avoid "deduced return type cannot be used before it is defined" error
 endif()
