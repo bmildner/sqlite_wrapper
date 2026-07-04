@@ -18,13 +18,16 @@ env:
 
 jobs:
   build:
-    name: ${{ matrix.toolset }}-${{ matrix.build-type }}
+    name: ${{ matrix.preset }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        toolset: [ gcc14, gcc15 ]
-        build-type: [ debug, release ]
+        preset:
+          - linux-debug
+          - linux-release
+          - linux-debug-newest-toolset
+          - linux-release-newest-toolset
 
     steps:
       - name: Checkout
@@ -42,8 +45,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ninja-build ccache mold doxygen graphviz pipx
 
-      - name: Install gcc-14 / clang-tidy-20
-        if: matrix.toolset == 'gcc14'
+      - name: Install default toolchain
+        if: ${{ !contains(matrix.preset, 'newest-toolset') }}
         run: |
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get update
@@ -53,8 +56,8 @@ jobs:
           sudo /tmp/llvm.sh 20
           sudo apt-get install -y clang-tidy-20
 
-      - name: Install gcc-15 / clang-tidy-21
-        if: matrix.toolset == 'gcc15'
+      - name: Install newest toolchain
+        if: ${{ contains(matrix.preset, 'newest-toolset') }}
         run: |
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get update
@@ -74,9 +77,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/ccache
-          key: ccache-${{ matrix.toolset }}-${{ matrix.build-type }}-${{ github.sha }}
+          key: ccache-${{ matrix.preset }}-${{ github.sha }}
           restore-keys: |
-            ccache-${{ matrix.toolset }}-${{ matrix.build-type }}-
+            ccache-${{ matrix.preset }}-
 
       - name: Bootstrap vcpkg
         run: |
@@ -84,32 +87,22 @@ jobs:
           "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
 
       - name: Configure
-        run: |
-          if [ "${{ matrix.toolset }}" = gcc14 ]; then
-            PRESET="linux-${{ matrix.build-type }}-newest-toolset"
-            cmake --preset "$PRESET"
-          else
-            PRESET="linux-${{ matrix.build-type }}"
-            cmake --preset "$PRESET" \
-              -DCMAKE_C_COMPILER=gcc-15 -DCMAKE_CXX_COMPILER=g++-15 \
-              -DCLANG_TIDY=clang-tidy-21 -DGCOV=gcov-15
-          fi
-          echo "PRESET=$PRESET" >> "$GITHUB_ENV"
+        run: cmake --preset "${{ matrix.preset }}"
 
       - name: Build
-        run: cmake --build --preset "$PRESET"
+        run: cmake --build --preset "${{ matrix.preset }}"
 
       - name: Build documentation
-        run: cmake --build --preset "$PRESET" --target sqlite_wrapper.build_documentation
+        run: cmake --build --preset "${{ matrix.preset }}" --target sqlite_wrapper.build_documentation
 
       - name: Workaround ASan/ASLR incompatibility
-        if: matrix.build-type == 'debug'
+        if: contains(matrix.preset, 'debug')
         run: sudo sysctl -w vm.mmap_rnd_bits=28
 
       - name: Run tests + coverage gate (debug)
-        if: matrix.build-type == 'debug'
+        if: contains(matrix.preset, 'debug')
         run: |
-          cmake --build --preset "$PRESET" --target sqlite_wrapper.coverage_report 2>&1 | tee cov.log
+          cmake --build --preset "${{ matrix.preset }}" --target sqlite_wrapper.coverage_report 2>&1 | tee cov.log
           LINE=$(grep 'TOTAL' cov.log | tail -1 | awk '{print $NF}' | tr -d '%')
           if [ -z "$LINE" ]; then
             echo "ERROR: could not parse line coverage from gcovr output"
@@ -119,5 +112,5 @@ jobs:
           awk -v c="$LINE" 'BEGIN { if (c + 0 < 90) { print "ERROR: line coverage " c "% is below 90% threshold"; exit 1 } }'
 
       - name: Run tests (release)
-        if: matrix.build-type == 'release'
-        run: cmake --build --preset "$PRESET" --target sqlite_wrapper.run_all_tests
+        if: contains(matrix.preset, 'release')
+        run: cmake --build --preset "${{ matrix.preset }}" --target sqlite_wrapper.run_all_tests
