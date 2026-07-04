@@ -141,7 +141,7 @@ namespace sqlite_wrapper
     requires(std::tuple_size_v<std::remove_cvref_t<Tuple>> >= 1)
   [[nodiscard]] constexpr auto pop_front(Tuple&& tuple) -> auto
   {
-    return std::make_pair(std::get<0>(std::forward<Tuple>(tuple)),
+    return std::make_pair(std::forward_like<Tuple>(std::get<0>(tuple)),
                           std::apply([]<typename... T>(auto&&, T&&... rest) -> auto
                                      { return std::make_tuple(std::forward<T>(rest)...); }, std::forward<Tuple>(tuple)));
   }
@@ -150,7 +150,7 @@ namespace sqlite_wrapper
     requires(std::tuple_size_v<std::remove_cvref_t<Tuple>> >= 1)
   [[nodiscard]] constexpr auto pop_back(Tuple&& tuple) -> auto
   {
-    return std::make_pair(std::get<std::tuple_size_v<std::remove_cvref_t<Tuple>> - 1>(std::forward<Tuple>(tuple)),
+    return std::make_pair(std::forward_like<Tuple>(std::get<std::tuple_size_v<std::remove_cvref_t<Tuple>> - 1>(tuple)),
                           [&]<std::size_t... I>(std::index_sequence<I...>) -> auto
                           {
                             return std::make_tuple(std::get<I>(std::forward<Tuple>(tuple))...);
@@ -172,7 +172,7 @@ namespace sqlite_wrapper
   {
     return [&]<std::size_t... I>(std::index_sequence<I...>) -> auto
     {
-      return std::make_tuple(std::get<I>(std::forward<Tuple>(tuple))..., std::forward<T>(element));
+      return std::make_tuple(std::forward_like<Tuple>(std::get<I>(tuple))..., std::forward<T>(element));
     }(std::make_index_sequence<std::tuple_size_v<std::remove_cvref_t<Tuple>>>());
   }
 
@@ -182,13 +182,13 @@ namespace sqlite_wrapper
     using array_type =
         std::array<std::tuple_element_t<0, std::remove_cvref_t<Tuple>>, std::tuple_size_v<std::remove_cvref_t<Tuple>>>;
 #if defined(_MSC_VER) && !defined(__clang__)
-# pragma warning(push)
-# pragma warning(disable : 4702)  // unreachable code warning, false positive?
+#  pragma warning(push)
+#  pragma warning(disable : 4702)  // unreachable code warning, false positive?
 #endif
     return std::apply([]<typename... T>(T&&... elements) -> auto { return array_type{std::forward<T>(elements)...}; },
                       std::forward<Tuple>(tuple));
 #if defined(_MSC_VER) && !defined(__clang__)
-# pragma warning(pop)
+#  pragma warning(pop)
 #endif
   }
 
