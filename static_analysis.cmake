@@ -9,6 +9,10 @@ if ((ENABLE_STATIC_ANALYSIS) AND (NOT DEFINED MSVC))
     find_program(CLANG_TIDY NAMES clang-tidy REQUIRED)
   endif ()
 
+  execute_process(COMMAND ${CLANG_TIDY} --version OUTPUT_VARIABLE CLANG_TIDY_VERSION_OUTPUT)
+  string(STRIP "${CLANG_TIDY_VERSION_OUTPUT}" CLANG_TIDY_VERSION_OUTPUT)
+  message(STATUS "Using clang-tidy: ${CLANG_TIDY} (${CLANG_TIDY_VERSION_OUTPUT})")
+
   # enable clang-tidy
   set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY};
       -extra-arg=-Wno-unknown-warning-option;
