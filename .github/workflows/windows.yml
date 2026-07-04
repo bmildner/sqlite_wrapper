@@ -48,6 +48,12 @@ jobs:
       - name: Set up CMake >= 3.30
         uses: lukka/get-cmake@latest
 
+      - name: Restore our own VCPKG_ROOT
+        # msvc-dev-cmd's vcvarsall sets VCPKG_ROOT to the VS-bundled vcpkg and
+        # exports it via GITHUB_ENV, clobbering the job-level env above.
+        shell: pwsh
+        run: echo "VCPKG_ROOT=${{ github.workspace }}/vcpkg" >> $env:GITHUB_ENV
+
       - name: Bootstrap vcpkg
         shell: pwsh
         run: |
