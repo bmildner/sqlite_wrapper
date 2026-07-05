@@ -48,6 +48,18 @@ namespace sqlite_wrapper
               ...);
         }(std::make_index_sequence<std::tuple_size_v<std::remove_cvref_t<T>>>())));
 
+  /**
+   * A `tuple_like` type that is not a range (and thus not `std::array` or another homogeneous,
+   * range-backed container). This is deliberately weaker than `!array_like<T>`: a homogeneous
+   * `std::tuple` (e.g. `std::tuple<int, int>`) satisfies `array_like`, but is still a perfectly
+   * valid target for `add_type_front`/`add_type_back`/`remove_type_front`/`remove_type_back` (see
+   * `tuple_utils.h`), so it must satisfy this concept too.
+   *
+   * @tparam T the type to check
+   */
+  template <typename T>
+  concept heterogeneous_tuple_like = tuple_like<T> && !std::ranges::range<std::remove_cvref_t<T>>;
+
   template <typename T, typename U, typename... V>
   concept same_as_either = std::same_as<T, U> || (std::same_as<T, V> || ...);
 
