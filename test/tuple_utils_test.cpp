@@ -72,6 +72,41 @@ static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::pair<int, uns
 static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::tuple<float, float, float, long>, std::true_type>,
                              std::array<float, 3>>);
 
+// test add_type_front/back and remove_type_front/back on a *homogeneous* std::tuple: this is
+// array_like (all elements have the same type) but is still a std::tuple, not a range-backed
+// container, so it must keep working - see heterogeneous_tuple_like's doc comment in concepts.h
+static_assert(std::is_same_v<sqlite_wrapper::add_type_front<char, std::tuple<int, int>>, std::tuple<char, int, int>>);
+static_assert(std::is_same_v<sqlite_wrapper::add_type_back<char, std::tuple<int, int>>, std::tuple<int, int, char>>);
+static_assert(std::is_same_v<sqlite_wrapper::remove_type_front<std::tuple<int, int, int>>, std::tuple<int, int>>);
+static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<std::tuple<int, int, int>>, std::tuple<int, int>>);
+
+// test add_type_front/back and remove_type_front/back on cv/ref-qualified tuple/pair inputs
+static_assert(std::is_same_v<sqlite_wrapper::add_type_front<int, const std::tuple<char>&>, std::tuple<int, char>>);
+static_assert(std::is_same_v<sqlite_wrapper::add_type_back<int, const std::tuple<char>&>, std::tuple<char, int>>);
+static_assert(std::is_same_v<sqlite_wrapper::remove_type_front<const std::tuple<char, float>&>, std::tuple<float>>);
+static_assert(std::is_same_v<sqlite_wrapper::remove_type_back<const std::tuple<char, float>&>, std::tuple<char>>);
+
+// test that the can_add_type_front/back and can_remove_type_front/back concepts (tuple_utils.h)
+// correctly detect whether add_type_front/back and remove_type_front/back reject std::array (and
+// other range-backed tuple-like types) via a constraint (SFINAE-friendly, see
+// heterogeneous_tuple_like in concepts.h), rather than hard-erroring deep inside the implementation.
+
+// sanity: supported inputs are still detected as supported
+static_assert(sqlite_wrapper::can_add_type_front<std::tuple<char, float>>);
+static_assert(sqlite_wrapper::can_add_type_back<std::tuple<char, float>>);
+static_assert(sqlite_wrapper::can_remove_type_front<std::tuple<char, float>>);
+static_assert(sqlite_wrapper::can_remove_type_back<std::tuple<char, float>>);
+
+// std::array is rejected for all four ops ...
+static_assert(!sqlite_wrapper::can_add_type_front<std::array<int, 2>>);
+static_assert(!sqlite_wrapper::can_add_type_back<std::array<int, 2>>);
+static_assert(!sqlite_wrapper::can_remove_type_front<std::array<int, 2>>);
+static_assert(!sqlite_wrapper::can_remove_type_back<std::array<int, 2>>);
+
+// ... including when cv/ref-qualified
+static_assert(!sqlite_wrapper::can_add_type_front<const std::array<int, 2>&>);
+static_assert(!sqlite_wrapper::can_remove_type_front<const std::array<int, 2>&>);
+
 // test pop_front
 static_assert(std::is_same_v<decltype(sqlite_wrapper::pop_front(std::make_tuple("lol"))), std::pair<const char*, std::tuple<>>>);
 static_assert(
