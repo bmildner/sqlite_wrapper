@@ -1,6 +1,7 @@
 #include "sqlite_wrapper/tuple_utils.h"
 
 #include "assert_throws_with_msg.h"
+#include "sqlite_wrapper/concepts.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -9,6 +10,7 @@
 #include <concepts>
 #include <cstddef>
 #include <functional>
+#include <ranges>
 #include <stdexcept>
 #include <string_view>
 #include <tuple>
@@ -18,6 +20,38 @@
 using namespace std::string_view_literals;
 
 using ::testing::HasSubstr;
+
+namespace
+{
+  // A tuple-like type that is neither std::tuple/std::pair itself (so details:: has no
+  // implementation for it - it is not one of the structural specializations) nor a
+  // std::ranges::range (so it is NOT rejected by the range check in
+  // heterogeneous_tuple_like/array_like) - it deliberately probes the "some other unsupported
+  // tuple-like type" path that isn't std::array. Publicly deriving from std::tuple gets
+  // std::get<N> to work for free (via the standard derived-to-base template argument deduction for
+  // function calls), without needing to add get() overloads findable via ADL.
+  struct custom_tuple_like : std::tuple<int, int>
+  {
+    using std::tuple<int, int>::tuple;
+  };
+}  // namespace
+
+// tuple_size/tuple_element specializations for a program-defined type are explicitly permitted by
+// the standard (see [tuple.helper]).
+// NOLINTBEGIN(cert-dcl58-cpp)
+template <>
+struct std::tuple_size<custom_tuple_like> : std::tuple_size<std::tuple<int, int>>
+{
+};
+
+template <std::size_t N>
+struct std::tuple_element<N, custom_tuple_like> : std::tuple_element<N, std::tuple<int, int>>
+{
+};
+// NOLINTEND(cert-dcl58-cpp)
+
+static_assert(sqlite_wrapper::tuple_like<custom_tuple_like>);
+static_assert(!std::ranges::range<custom_tuple_like>);
 
 // test try_to_convert_to_array_type
 static_assert(std::is_same_v<sqlite_wrapper::try_to_convert_to_array_type<std::tuple<int>>, std::array<int, 1>>);
@@ -106,6 +140,14 @@ static_assert(!sqlite_wrapper::can_remove_type_back<std::array<int, 2>>);
 // ... including when cv/ref-qualified
 static_assert(!sqlite_wrapper::can_add_type_front<const std::array<int, 2>&>);
 static_assert(!sqlite_wrapper::can_remove_type_front<const std::array<int, 2>&>);
+
+// custom_tuple_like is neither a range (so it passes the heterogeneous_tuple_like/range check that
+// rejects std::array) nor std::tuple/std::pair (so details:: has no implementation for it) - it must
+// still be cleanly SFINAE-rejected for all four ops rather than hard-erroring deep inside details::.
+static_assert(!sqlite_wrapper::can_add_type_front<custom_tuple_like>);
+static_assert(!sqlite_wrapper::can_add_type_back<custom_tuple_like>);
+static_assert(!sqlite_wrapper::can_remove_type_front<custom_tuple_like>);
+static_assert(!sqlite_wrapper::can_remove_type_back<custom_tuple_like>);
 
 // test pop_front
 static_assert(std::is_same_v<decltype(sqlite_wrapper::pop_front(std::make_tuple("lol"))), std::pair<const char*, std::tuple<>>>);
