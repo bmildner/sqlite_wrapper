@@ -12,28 +12,13 @@ namespace sqlite_wrapper
 {
   namespace details
   {
-    // Dependent "false" for use in static_assert inside templates, so the assert only fires on
-    // instantiation instead of unconditionally.
-    template <typename...>
-    inline constexpr bool always_false = false;
-
+    // Primary templates are intentionally empty (no ::type member) for unsupported tuple-like types,
+    // so support can be probed via SFINAE (see the *_supported concepts and can_*/public aliases
+    // below) instead of hard-erroring. Only std::tuple/std::pair (and, for remove_*, the recursive
+    // reassembly cases) get a ::type.
     template <typename T, typename Tuple>
     struct add_type_front
     {
-      static_assert(always_false<Tuple>,
-                    "add_type_front: unsupported tuple-like type; only std::tuple and std::pair are supported");
-      using type = Tuple;  // suppress follow-on "no member type" errors
-    };
-
-    // std::array or another homogeneous, range-backed tuple-like container: its element type is fixed, so adding a
-    // differently-typed element is not representable.
-    template <typename T, array_like Array>
-    struct add_type_front<T, Array>
-    {
-      static_assert(always_false<Array>,
-                    "add_type_front: cannot add a type to std::array or another homogeneous, range-backed tuple-like "
-                    "container; its element type is fixed. Convert to std::tuple first.");
-      using type = Array;
     };
 
     template <typename T, typename... Args>
@@ -51,20 +36,6 @@ namespace sqlite_wrapper
     template <typename T, typename Tuple>
     struct add_type_back
     {
-      static_assert(always_false<Tuple>,
-                    "add_type_back: unsupported tuple-like type; only std::tuple and std::pair are supported");
-      using type = Tuple;  // suppress follow-on "no member type" errors
-    };
-
-    // std::array or another homogeneous, range-backed tuple-like container: its element type is
-    // fixed, so adding a differently-typed element is not representable.
-    template <typename T, array_like Array>
-    struct add_type_back<T, Array>
-    {
-      static_assert(always_false<Array>,
-                    "add_type_back: cannot add a type to std::array or another homogeneous, range-backed tuple-like "
-                    "container; its element type is fixed. Convert to std::tuple first.");
-      using type = Array;
     };
 
     template <typename T, typename... Args>
@@ -82,20 +53,6 @@ namespace sqlite_wrapper
     template <typename Tuple>
     struct remove_type_front
     {
-      static_assert(always_false<Tuple>,
-                    "remove_type_front: unsupported tuple-like type; only std::tuple and std::pair are supported");
-      using type = Tuple;  // suppress follow-on "no member type" errors
-    };
-
-    // std::array or another homogeneous, range-backed tuple-like container: its element type/size
-    // is fixed, so removing an element is not representable.
-    template <array_like Array>
-    struct remove_type_front<Array>
-    {
-      static_assert(always_false<Array>,
-                    "remove_type_front: cannot remove a type from std::array or another homogeneous, range-backed "
-                    "tuple-like container; its size/element type is fixed. Convert to std::tuple first.");
-      using type = Array;
     };
 
     // For empty tuple
@@ -120,20 +77,6 @@ namespace sqlite_wrapper
     template <typename Tuple>
     struct remove_type_back
     {
-      static_assert(always_false<Tuple>,
-                    "remove_type_back: unsupported tuple-like type; only std::tuple and std::pair are supported");
-      using type = Tuple;  // suppress follow-on "no member type" errors
-    };
-
-    // std::array or another homogeneous, range-backed tuple-like container: its element type/size is fixed, so removing an
-    // element is not representable.
-    template <array_like Array>
-    struct remove_type_back<Array>
-    {
-      static_assert(always_false<Array>,
-                    "remove_type_back: cannot remove a type from std::array or another homogeneous, range-backed "
-                    "tuple-like container; its size/element type is fixed. Convert to std::tuple first.");
-      using type = Array;
     };
 
     // For empty tuple
@@ -194,17 +137,48 @@ namespace sqlite_wrapper
   template <array_like T>
   using convert_to_array_type = try_to_convert_to_array_type<T>;
 
-  template <typename T, heterogeneous_tuple_like Tuple>
+  /**
+   * Whether add_type_front<T, Tuple> is supported for a given Tuple/T: Tuple must be
+   * heterogeneous_tuple_like (i.e. not std::array or another range-backed container - those cannot
+   * represent adding a differently-typed element) AND details:: must actually provide an
+   * implementation (currently `std::tuple`/`std::pair`). Fully SFINAE-friendly: unsupported inputs simply
+   * make this concept (and thus the add_type_front alias below) not satisfied, rather than
+   * hard-erroring.
+   */
+  template <typename Tuple, typename T = int>
+  concept add_type_front_supported =
+      heterogeneous_tuple_like<Tuple> && requires { typename details::add_type_front<T, std::remove_cvref_t<Tuple>>::type; };
+
+  /// @see add_type_front_supported
+  template <typename Tuple, typename T = int>
+  concept add_type_back_supported =
+      heterogeneous_tuple_like<Tuple> && requires { typename details::add_type_back<T, std::remove_cvref_t<Tuple>>::type; };
+
+  /// @see add_type_front_supported
+  template <typename Tuple>
+  concept remove_type_front_supported =
+      heterogeneous_tuple_like<Tuple> && requires { typename details::remove_type_front<std::remove_cvref_t<Tuple>>::type; };
+
+  /// @see add_type_front_supported
+  template <typename Tuple>
+  concept remove_type_back_supported =
+      heterogeneous_tuple_like<Tuple> && requires { typename details::remove_type_back<std::remove_cvref_t<Tuple>>::type; };
+
+  template <typename T, typename Tuple>
+    requires add_type_front_supported<Tuple, T>
   using add_type_front = details::add_type_front<T, std::remove_cvref_t<Tuple>>::type;
 
-  template <typename T, heterogeneous_tuple_like Tuple>
+  template <typename T, typename Tuple>
+    requires add_type_back_supported<Tuple, T>
   using add_type_back = details::add_type_back<T, std::remove_cvref_t<Tuple>>::type;
 
-  template <heterogeneous_tuple_like Tuple, boolean_constant convert = std::false_type>
+  template <typename Tuple, boolean_constant convert = std::false_type>
+    requires remove_type_front_supported<Tuple>
   using remove_type_front =
       details::try_to_convert_to_array_type<typename details::remove_type_front<std::remove_cvref_t<Tuple>>::type, convert>;
 
-  template <heterogeneous_tuple_like Tuple, boolean_constant convert = std::false_type>
+  template <typename Tuple, boolean_constant convert = std::false_type>
+    requires remove_type_back_supported<Tuple>
   using remove_type_back =
       details::try_to_convert_to_array_type<typename details::remove_type_back<std::remove_cvref_t<Tuple>>::type, convert>;
 
@@ -276,7 +250,7 @@ namespace sqlite_wrapper
    *           the operation is supported at all
    */
   template <typename Tuple, typename T = int>
-  concept can_add_type_front = requires { typename add_type_front<T, Tuple>; };
+  concept can_add_type_front = add_type_front_supported<Tuple, T>;
 
   /**
    * Checks whether add_type_back<T, Tuple> is well-formed, i.e. whether a type T could be added to
@@ -288,7 +262,7 @@ namespace sqlite_wrapper
    *           the operation is supported at all
    */
   template <typename Tuple, typename T = int>
-  concept can_add_type_back = requires { typename add_type_back<T, Tuple>; };
+  concept can_add_type_back = add_type_back_supported<Tuple, T>;
 
   /**
    * Checks whether remove_type_front<Tuple> is well-formed, i.e. whether the front element of Tuple
@@ -298,7 +272,7 @@ namespace sqlite_wrapper
    * @tparam Tuple the tuple-like type an element would be removed from
    */
   template <typename Tuple>
-  concept can_remove_type_front = requires { typename remove_type_front<Tuple>; };
+  concept can_remove_type_front = remove_type_front_supported<Tuple>;
 
   /**
    * Checks whether remove_type_back<Tuple> is well-formed, i.e. whether the back element of Tuple
@@ -308,6 +282,6 @@ namespace sqlite_wrapper
    * @tparam Tuple the tuple-like type an element would be removed from
    */
   template <typename Tuple>
-  concept can_remove_type_back = requires { typename remove_type_back<Tuple>; };
+  concept can_remove_type_back = remove_type_back_supported<Tuple>;
 
 }  // namespace sqlite_wrapper
