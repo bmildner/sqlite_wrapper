@@ -36,7 +36,6 @@ using ::testing::ElementsAreArray;
 using ::testing::Eq;
 using ::testing::HasSubstr;
 using ::testing::InSequence;
-using ::testing::Invoke;
 using ::testing::IsNull;
 using ::testing::Mock;
 using ::testing::NotNull;
@@ -145,15 +144,15 @@ namespace
       {
         EXPECT_CALL(*get_mock(), sqlite3_bind_blob64(stmt, index, NotNull(), value.size(), IsNull()))
             .InSequence(sequence)
-            .WillOnce(DoAll(Invoke(
-                                [value](sqlite3_stmt*, int, const void* param_value, sqlite3_uint64 byteSize, void (*)(void*))
-                                {
-                                  const auto data{sqlite_wrapper::const_byte_span{static_cast<const std::byte*>(param_value),
-                                                                                  static_cast<std::size_t>(byteSize)}};
+            .WillOnce(DoAll(
+                [value](sqlite3_stmt*, int, const void* param_value, sqlite3_uint64 byteSize, void (*)(void*))
+                {
+                  const auto data{sqlite_wrapper::const_byte_span{static_cast<const std::byte*>(param_value),
+                                                                  static_cast<std::size_t>(byteSize)}};
 
-                                  ASSERT_THAT(data, ElementsAreArray(value));
-                                }),
-                            Return(sqlite_error)))
+                  ASSERT_THAT(data, ElementsAreArray(value));
+                },
+                Return(sqlite_error)))
             .RetiresOnSaturation();
       };
     }
