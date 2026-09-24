@@ -51,10 +51,10 @@ namespace sqlite_wrapper
     }
   }  // unnamed namespace
 
-  sqlite_error::sqlite_error(std::string_view what, const db_with_location& database, int error, std::stacktrace&& stacktrace)
+  sqlite_error::sqlite_error(std::string_view what, const db_with_location& connection, int error, std::stacktrace&& stacktrace)
       : std::runtime_error(
-            sqlite_wrapper::format("{}, failed with: {} in {}", what, error_to_string(database.value, error), database.location)),
-        m_location(database.location),
+            sqlite_wrapper::format("{}, failed with: {} in {}", what, error_to_string(connection.value, error), connection.location)),
+        m_location(connection.location),
         m_stacktrace(std::move(stacktrace))
   {
   }

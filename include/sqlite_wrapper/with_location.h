@@ -12,7 +12,7 @@ namespace sqlite_wrapper
    *
    * Like:
    * @code
-   * auto create_prepared_statement(const db_with_location& database, std::string_view sql, const binding_type auto&... params) -> statement
+   * auto create_prepared_statement(const db_with_location& connection, std::string_view sql, const binding_type auto&... params) -> statement
    * @endcode
    *
    * @tparam T the type to be wrapped
@@ -23,13 +23,13 @@ namespace sqlite_wrapper
     using value_type = std::remove_reference_t<T>;
 
     // NOLINTNEXTLINE(hicpp-explicit-conversions)
-    with_location(const value_type& value, const std::source_location& loc = std::source_location::current())
-      : value(value), location(loc)
+    with_location(const value_type& init_value, const std::source_location& loc = std::source_location::current())
+      : value(init_value), location(loc)
     {}
 
     // NOLINTNEXTLINE(hicpp-explicit-conversions)
-    with_location(value_type&& value, const std::source_location& loc = std::source_location::current())
-      : value(std::move(value)), location(loc)
+    with_location(value_type&& init_value, const std::source_location& loc = std::source_location::current())
+      : value(std::move(init_value)), location(loc)
     {}
 
     value_type value;

@@ -30,11 +30,11 @@ if (DEFINED MSVC)
   # TODO: in Release mode the PDBs are not named correctly nor copied/generated in CMAKE_RUNTIME_OUTPUT_DIRECTORY
   set_target_properties(common_target_settings PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT ProgramDatabase)
 
-  # make sure the linker removes unreferenced functions and data, default of NOREF when generation debug infos!
+  # make sure the linker removes unreferenced functions and data, default is NOREF when generating debug infos!
   target_link_options(common_target_settings INTERFACE /OPT:REF)
 else()
-  target_compile_options(common_target_settings INTERFACE -Wall -Wextra -Wpedantic -Wformat -Wformat=2 -Wconversion -Wsign-conversion -Wfloat-conversion -Wtrampolines -Wimplicit-fallthrough)
-  target_compile_options(common_target_settings INTERFACE -fstack-clash-protection -fstack-protector-strong -fcf-protection=full)
+  target_compile_options(common_target_settings INTERFACE -Wall -Wextra -Wpedantic -Wshadow -Wold-style-cast -Wcast-align -Wnull-dereference -Wuseless-cast -Wlogical-op -Wduplicated-cond -Wduplicated-branches -Wconversion -Wsign-conversion -Wfloat-conversion -Wtrampolines -Wimplicit-fallthrough -Wformat -Wformat=2)
+  target_compile_options(common_target_settings INTERFACE -fstack-clash-protection -fstack-protector-strong -fcf-protection=full -ftrivial-auto-var-init=zero)
   target_compile_options(common_target_settings INTERFACE -Wl,-z,nodlopen -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now)
 
   target_link_options(common_target_settings INTERFACE LINKER:-z,nodlopen LINKER:-z,noexecstack LINKER:-z,relro LINKER:-z,now)

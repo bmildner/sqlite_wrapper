@@ -65,13 +65,13 @@ namespace sqlite_wrapper
   template<column_type T>
   struct column
   {
-    column(std::string_view name) requires (!details::is_foreign_key<T>)
-      :name(name)
+    column(std::string_view column_name) requires (!details::is_foreign_key<T>)
+      :name(column_name)
     {}
 
     template <column_type... columns>
-    column(std::string_view name, table<columns...> f_table) requires details::is_foreign_key<T>
-      : name(name)
+    column(std::string_view column_name, table<columns...> f_table) requires details::is_foreign_key<T>
+      : name(column_name)
     {
       (void) f_table;
     }
@@ -91,8 +91,8 @@ namespace sqlite_wrapper
   {
     static_assert(sizeof...(Column_types) > 0);
 
-    table(std::string_view name, const column<Column_types>&... col)
-      :name(name)
+    table(std::string_view table_name, const column<Column_types>&... col)
+      :name(table_name)
     {
       ((void) col, ...);
     }

@@ -25,7 +25,7 @@ namespace sqlite_wrapper
   class sqlite_error : public std::runtime_error
   {
    public:
-    SQLITE_WRAPPER_EXPORT sqlite_error(std::string_view what, const db_with_location& database, int error,
+    SQLITE_WRAPPER_EXPORT sqlite_error(std::string_view what, const db_with_location& connection, int error,
                                        std::stacktrace&& stacktrace = get_stack_trace(1));
 
     SQLITE_WRAPPER_EXPORT sqlite_error(std::string_view what, const stmt_with_location& stmt, int error,

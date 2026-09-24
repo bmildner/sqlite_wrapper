@@ -16,15 +16,15 @@ namespace sqlite_wrapper
 {
   namespace details
   {
-    auto create_prepared_statement(const db_with_location& database, std::string_view sql) -> statement
+    auto create_prepared_statement(const db_with_location& connection, std::string_view sql) -> statement
     {
       sqlite3_stmt* stmt{nullptr};
 
-      if (const auto result{::sqlite3_prepare_v2(database.value, sql.data(), static_cast<int>(sql.size()), &stmt, nullptr)};
+      if (const auto result{::sqlite3_prepare_v2(connection.value, sql.data(), static_cast<int>(sql.size()), &stmt, nullptr)};
           (result != SQLITE_OK) || (stmt == nullptr))
       {
         assert(stmt == nullptr);
-        throw sqlite_error(sqlite_wrapper::format("failed to create prepared statement \"{}\"", sql), database, result);
+        throw sqlite_error(sqlite_wrapper::format("failed to create prepared statement \"{}\"", sql), connection, result);
       }
 
       return statement{stmt};

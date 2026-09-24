@@ -124,7 +124,7 @@ namespace sqlite_wrapper
 
   namespace details
   {
-    [[nodiscard]] SQLITE_WRAPPER_EXPORT auto create_prepared_statement(const db_with_location& database, std::string_view sql)
+    [[nodiscard]] SQLITE_WRAPPER_EXPORT auto create_prepared_statement(const db_with_location& connection, std::string_view sql)
         -> statement;
 
     SQLITE_WRAPPER_EXPORT void bind_value(const stmt_with_location& stmt, int index);  // null-value
@@ -246,21 +246,21 @@ namespace sqlite_wrapper
   /**
    * Creates a new prepared statement and binds given parameters.
    *
-   * @param database database handle
+   * @param connection database handle
    * @param sql SQL statement to prepare (can contain placeholders)
    * @param params 0 to n parameters that are bound to the placeholders in \p sql
    * @returns a prepared statement handle in a RAII guard
    * @throws sqlite_error in case SQLite returns an error or an invalid handle
    */
-  [[nodiscard]] auto create_prepared_statement(const db_with_location& database, std::string_view sql,
+  [[nodiscard]] auto create_prepared_statement(const db_with_location& connection, std::string_view sql,
                                                const binding_type auto&... params) -> statement
   {
-    auto stmt{details::create_prepared_statement(database, sql)};
+    auto stmt{details::create_prepared_statement(connection, sql)};
 
     // "false-positive" triggered by empty parameter pack NOLINTNEXTLINE(misc-const-correctness)
     [[maybe_unused]] int index{1};
 
-    (details::bind_value_and_increment_index({stmt.get(), database.location}, index, params), ...);
+    (details::bind_value_and_increment_index({stmt.get(), connection.location}, index, params), ...);
 
     return stmt;
   }
@@ -340,28 +340,28 @@ namespace sqlite_wrapper
     return get_rows<Row>(stmt, std::numeric_limits<std::size_t>::max());
   }
 
-  void execute_no_data(const db_with_location& database, std::string_view sql, const binding_type auto&... params)
+  void execute_no_data(const db_with_location& connection, std::string_view sql, const binding_type auto&... params)
   {
-    const auto stmt{create_prepared_statement(database, sql, params...)};
+    const auto stmt{create_prepared_statement(connection, sql, params...)};
 
-    if (step({stmt.get(), database.location}))
+    if (step({stmt.get(), connection.location}))
     {
-      throw sqlite_error("unexpected data row in execute_no_data()", {stmt.get(), database.location});
+      throw sqlite_error("unexpected data row in execute_no_data()", {stmt.get(), connection.location});
     }
   }
 
   template <row_type Row>
-  [[nodiscard]] auto execute_one_row(const db_with_location& database, std::string_view sql, const binding_type auto&... params)
+  [[nodiscard]] auto execute_one_row(const db_with_location& connection, std::string_view sql, const binding_type auto&... params)
       -> Row
   {
-    const auto stmt{create_prepared_statement(database, sql, params...)};
+    const auto stmt{create_prepared_statement(connection, sql, params...)};
 
-    const auto result{get_rows<Row>({&stmt, database.location}, 1, 1)};
+    const auto result{get_rows<Row>({&stmt, connection.location}, 1, 1)};
 
-    if (const auto size{result.size()}; (size != 1) || step({stmt.get(), database.location}))
+    if (const auto size{result.size()}; (size != 1) || step({stmt.get(), connection.location}))
     {
       throw sqlite_error(sqlite_wrapper::format("expected exactly one row but found {}", (size == 0) ? "none" : "more"),
-                         {&stmt, database.location});
+                         {&stmt, connection.location});
     }
 
     return std::move(result[0]);
@@ -370,9 +370,9 @@ namespace sqlite_wrapper
   struct row_limit
   {
     row_limit() noexcept = default;
-    explicit row_limit(std::size_t limit) noexcept : limit{limit} {}
+    explicit row_limit(std::size_t max_rows) noexcept : limit{max_rows} {}
     // NOLINTNEXTLINE(*-easily-swappable-parameters)
-    row_limit(std::size_t limit, std::size_t expected_minimum) noexcept : limit{limit}, expected_minimum{expected_minimum} {}
+    row_limit(std::size_t max_rows, std::size_t min_rows) noexcept : limit{max_rows}, expected_minimum{min_rows} {}
 
     ~row_limit() noexcept = default;
     row_limit(const row_limit&) noexcept = default;
@@ -385,19 +385,19 @@ namespace sqlite_wrapper
   };
 
   template <row_type Row>
-  [[nodiscard]] auto execute(const db_with_location& database, const row_limit& limit, std::string_view sql,
+  [[nodiscard]] auto execute(const db_with_location& connection, const row_limit& limit, std::string_view sql,
                              const binding_type auto&... params) -> std::vector<Row>
   {
-    const auto stmt{create_prepared_statement(database, sql, params...)};
+    const auto stmt{create_prepared_statement(connection, sql, params...)};
 
-    return get_rows<Row>({stmt.get(), database.location}, limit.limit, limit.expected_minimum);
+    return get_rows<Row>({stmt.get(), connection.location}, limit.limit, limit.expected_minimum);
   }
 
   template <row_type Row>
-  [[nodiscard]] auto execute(const db_with_location& database, std::string_view sql, const binding_type auto&... params)
+  [[nodiscard]] auto execute(const db_with_location& connection, std::string_view sql, const binding_type auto&... params)
       -> std::vector<Row>
   {
-    return execute<Row>(database, row_limit{}, sql, params...);
+    return execute<Row>(connection, row_limit{}, sql, params...);
   }
 }  // namespace sqlite_wrapper
 
