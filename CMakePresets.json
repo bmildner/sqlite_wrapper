@@ -141,6 +141,33 @@
                     "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}"
                 }
             }
+        },
+        {
+            "name": "linux-base-experimental-toolset",
+            "hidden": true,
+            "inherits": "linux-base",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "gcc-16",
+                "CMAKE_CXX_COMPILER": "g++-16",
+                "CLANG_TIDY": "clang-tidy-21",
+                "GCOV": "gcov-16"
+            }
+        },
+        {
+            "name": "linux-debug-experimental-toolset",
+            "displayName": "Linux Debug experimental toolset",
+            "inherits": "linux-base-experimental-toolset",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "linux-release-experimental-toolset",
+            "displayName": "Linux Release experimental toolset",
+            "inherits": "linux-base-experimental-toolset",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
         }
     ],
     "buildPresets": [
@@ -169,12 +196,20 @@
             "configurePreset": "linux-debug-newest-toolset"
         },
         {
+            "name": "linux-debug-experimental-toolset",
+            "configurePreset": "linux-debug-experimental-toolset"
+        },
+        {
             "name": "linux-release",
             "configurePreset": "linux-release"
         },
         {
             "name": "linux-release-newest-toolset",
             "configurePreset": "linux-release-newest-toolset"
+        },
+        {
+            "name": "linux-release-experimental-toolset",
+            "configurePreset": "linux-release-experimental-toolset"
         },
         {
             "name": "macos-debug",
