@@ -24,12 +24,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { platform: Linux,   os: ubuntu-latest,  preset: linux-debug }
-          - { platform: Linux,   os: ubuntu-latest,  preset: linux-release }
-          - { platform: Linux,   os: ubuntu-latest,  preset: linux-debug-newest-toolset }
-          - { platform: Linux,   os: ubuntu-latest,  preset: linux-release-newest-toolset }
-          - { platform: Linux,   os: ubuntu-latest,  preset: linux-debug-experimental-toolset }
-          - { platform: Linux,   os: ubuntu-latest,  preset: linux-release-experimental-toolset }
+          - { platform: Linux,   os: ubuntu-24.04,  preset: linux-debug }
+          - { platform: Linux,   os: ubuntu-24.04,  preset: linux-release }
+          - { platform: Linux,   os: ubuntu-24.04,  preset: linux-debug-newest-toolset }
+          - { platform: Linux,   os: ubuntu-24.04,  preset: linux-release-newest-toolset }
+          - { platform: Linux,   os: ubuntu-24.04,  preset: linux-debug-experimental-toolset }
+          - { platform: Linux,   os: ubuntu-24.04,  preset: linux-release-experimental-toolset }
           - { platform: Windows, os: windows-latest, preset: x64-debug,   arch: amd64 }
           - { platform: Windows, os: windows-latest, preset: x64-release, arch: amd64 }
           - { platform: Windows, os: windows-latest, preset: x86-debug,   arch: x86 }
