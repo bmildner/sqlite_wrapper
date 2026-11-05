@@ -20,6 +20,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin CACHE PATH "Directo
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib CACHE PATH "Directory where shared objects are dumped." FORCE)
 set(CMAKE_BUILD_RPATH ../lib CACHE PATH "Path where executables should look for shared objects." FORCE)
 
+set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT ProgramDatabase CACHE STRING "Debug format set to PDB foe MSVC" FORCE)
+set(CMAKE_PDB_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} CACHE PATH "Directory where linker generated PDBs are dumped." FORCE)
+set(CMAKE_COMPILE_PDB_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} CACHE PATH "Directory where compiler generated PDBs are dumped." FORCE)
+
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON CACHE BOOL "Treat all warnings as errors." FORCE)
 
 # enable mold linker if found

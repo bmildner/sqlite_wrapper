@@ -27,9 +27,6 @@ if (DEFINED MSVC)
     cmake_policy(SET CMP0141 NEW)
   endif()
 
-  # TODO: in Release mode the PDBs are not named correctly nor copied/generated in CMAKE_RUNTIME_OUTPUT_DIRECTORY
-  set_target_properties(common_target_settings PROPERTIES MSVC_DEBUG_INFORMATION_FORMAT ProgramDatabase)
-
   # make sure the linker removes unreferenced functions and data, default is NOREF when generating debug infos!
   target_link_options(common_target_settings INTERFACE /OPT:REF)
 else()
