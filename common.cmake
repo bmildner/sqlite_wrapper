@@ -27,6 +27,13 @@ if (DEFINED MSVC)
     cmake_policy(SET CMP0141 NEW)
   endif()
 
+  if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    # we always want to generate debug infos in non-debug builds, compiler side (/Zi) is handled by
+    # CMAKE_MSVC_DEBUG_INFORMATION_FORMAT, but the linker only generates a PDB with /DEBUG
+    # /DEBUG also changes the default to /OPT:NOICF, so re-enable identical COMDAT folding as in normal release builds
+    target_link_options(common_target_settings INTERFACE /DEBUG /OPT:ICF)
+  endif()
+
   # make sure the linker removes unreferenced functions and data, default is NOREF when generating debug infos!
   target_link_options(common_target_settings INTERFACE /OPT:REF)
 else()
