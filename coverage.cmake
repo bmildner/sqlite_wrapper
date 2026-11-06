@@ -10,7 +10,7 @@ add_custom_target(sqlite_wrapper.run_all_tests
 
 add_dependencies(sqlite_wrapper.run_all_tests sqlite_wrapper::test_runner sqlite_wrapper::test_runner_mocked)
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+if ((CMAKE_BUILD_TYPE STREQUAL "Debug") AND (NOT DEFINED MSVC))
   find_program(GCOVR NAMES gcovr)
 
   if (NOT GCOVR)
