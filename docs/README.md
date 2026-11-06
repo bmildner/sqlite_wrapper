@@ -1,3 +1,5 @@
+[![CI/CD Pipeline](https://github.com/bmildner/sqlite_wrapper/actions/workflows/pipeline.yml/badge.svg)](https://github.com/bmildner/sqlite_wrapper/actions/workflows/pipeline.yml)
+
 ## Required Tools
 
 ### All OS:
