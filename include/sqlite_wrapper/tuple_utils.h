@@ -188,6 +188,7 @@ namespace sqlite_wrapper
   {
     auto& first_element = std::get<0>(tuple);
     return std::make_pair(std::forward_like<Tuple>(first_element),
+      // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward) false positive
                           std::apply([]<typename... T>(auto&&, T&&... rest) -> auto
                                      { return std::make_tuple(std::forward<T>(rest)...); }, std::forward<Tuple>(tuple)));
   }
@@ -209,6 +210,7 @@ namespace sqlite_wrapper
   template <tuple_like Tuple, typename T>
   [[nodiscard]] constexpr auto push_front(Tuple&& tuple, T&& element) -> auto
   {
+    // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward) false positive
     return std::apply([&]<typename... U>(U&&... rest) -> auto
                       { return std::make_tuple(std::forward<T>(element), std::forward<U>(rest)...); },
                       std::forward<Tuple>(tuple));
@@ -216,6 +218,7 @@ namespace sqlite_wrapper
 
   // use std::ref/std::reference_wrapper to add reference types
   template <tuple_like Tuple, typename T>
+  // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward) we forward each element in the tuple by its own here!
   [[nodiscard]] constexpr auto push_back(Tuple&& tuple, T&& element) -> auto
   {
     return [&]<std::size_t... I>(std::index_sequence<I...>) -> auto
@@ -233,6 +236,7 @@ namespace sqlite_wrapper
 #  pragma warning(push)
 #  pragma warning(disable : 4702)  // unreachable code warning, false positive?
 #endif
+    // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward) false positive
     return std::apply([]<typename... T>(T&&... elements) -> auto { return array_type{std::forward<T>(elements)...}; },
                       std::forward<Tuple>(tuple));
 #if defined(_MSC_VER) && !defined(__clang__)

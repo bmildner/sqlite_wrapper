@@ -3,5 +3,6 @@ Checks: '-modernize-use-trailing-return-type,
   -*-special-member-functions,
   -readability-function-cognitive-complexity,
   -*-magic-numbers,
-  -bugprone-unchecked-optional-access'
+  -bugprone-throwing-static-initialization,
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access'
 InheritParentConfig: true

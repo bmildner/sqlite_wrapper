@@ -22,12 +22,12 @@ namespace sqlite_wrapper
   {
     using value_type = std::remove_reference_t<T>;
 
-    // NOLINTNEXTLINE(hicpp-explicit-conversions)
+    // NOLINTNEXTLINE(hicpp-explicit-conversions,*-explicit-constructor)
     with_location(const value_type& init_value, const std::source_location& loc = std::source_location::current())
       : value(init_value), location(loc)
     {}
 
-    // NOLINTNEXTLINE(hicpp-explicit-conversions)
+    // NOLINTNEXTLINE(hicpp-explicit-conversions,*-explicit-constructor)
     with_location(value_type&& init_value, const std::source_location& loc = std::source_location::current())
       : value(std::move(init_value)), location(loc)
     {}

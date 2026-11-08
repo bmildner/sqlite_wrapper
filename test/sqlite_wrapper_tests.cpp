@@ -60,13 +60,15 @@ namespace
     template <sqlite_wrapper::optional_database_type OptionalColumn>
     void generate_random_column(std::size_t string_and_blob_size_limit, OptionalColumn& column);
 
-    static constexpr auto get_and_print_seed{[]()
-                                             {
-                                               std::random_device random_device;
-                                               const auto seed = random_device();
-                                               std::cout << sqlite_wrapper::format("Using random seed: {}\n", seed);
-                                               return seed;
-                                             }};
+    static constexpr auto get_and_print_seed{
+      []
+      {
+        std::random_device random_device;
+        const auto seed = random_device();
+        std::cout << sqlite_wrapper::format("Using random seed: {}\n", seed);
+        return seed;
+      }
+    };
 
     std::mt19937 m_rng{get_and_print_seed()};
   };
@@ -102,7 +104,7 @@ namespace
 
     column.resize(size);
     std::ranges::generate(column,
-                          [&]()
+                          [&]
                           {
                             // apparently std::uniform_int_distribution can not be used with "char, signed char, unsigned char,
                             // char8_t, int8_t, and uint8_t"
@@ -119,7 +121,7 @@ namespace
     // apparently std::uniform_int_distribution can not be used with "char, signed char, unsigned char, char8_t, int8_t, and
     // uint8_t"
     std::ranges::generate(column,
-                          [&]() { return static_cast<char>(dist(m_rng)); });
+                          [&] { return static_cast<char>(dist(m_rng)); });
   }
 
   template <sqlite_wrapper::optional_database_type OptionalColumn>
@@ -284,16 +286,16 @@ namespace
     {
       const auto& [int_val, string_val, double_val, blob_val, opt_int, opt_string, opt_double, opt_blob] = row;
 
-      auto& data = alternative_row_data.emplace_back(
-          static_cast<std::uint32_t>(int_val), string_val, static_cast<float>(double_val), blob_val,
-          opt_int ? std::optional<int>(static_cast<int>(*opt_int)) : std::nullopt, opt_string,
-          opt_double ? std::optional<float>(static_cast<float>(*opt_double)) : std::nullopt, opt_blob);
+      const auto& data = alternative_row_data.emplace_back(
+        static_cast<std::uint32_t>(int_val), string_val, static_cast<float>(double_val), blob_val,
+        opt_int ? std::optional<int>(static_cast<int>(*opt_int)) : std::nullopt, opt_string,
+        opt_double ? std::optional<float>(static_cast<float>(*opt_double)) : std::nullopt, opt_blob);
 
       const auto& [u32_val, str, f_val, blob, opt_i, opt_str, opt_f, opt_blob_data] = data;
       alternative_rows_view.emplace_back(
-          u32_val, std::string_view(str), f_val, sqlite_wrapper::const_byte_span(blob), opt_i,
-          opt_str ? std::optional<std::string_view>(*opt_str) : std::nullopt, opt_f,
-          opt_blob_data ? std::optional<sqlite_wrapper::const_byte_span>(*opt_blob_data) : std::nullopt);
+        u32_val, std::string_view(str), f_val, sqlite_wrapper::const_byte_span(blob), opt_i,
+        opt_str ? std::optional<std::string_view>(*opt_str) : std::nullopt, opt_f,
+        opt_blob_data ? std::optional<sqlite_wrapper::const_byte_span>(*opt_blob_data) : std::nullopt);
     }
 
     sqlite_wrapper::statement stmt{sqlite_wrapper::create_prepared_statement(database, insert_into_test_table_sql)};
@@ -327,13 +329,13 @@ TEST_F(sqlite_wrapper_tests, test_sqlite_type_to_string)
 TEST_F(sqlite_wrapper_tests, test_open)
 {
   {
-    auto database{sqlite_wrapper::open(temp_db_file_name.string())};
+    const auto database{sqlite_wrapper::open(temp_db_file_name.string())};
 
     ASSERT_NE(database.get(), nullptr);
     ASSERT_TRUE(std::filesystem::exists(temp_db_file_name));
   }
   {
-    auto database{sqlite_wrapper::open(temp_db_file_name.string(), sqlite_wrapper::open_flags::open_only)};
+    const auto database{sqlite_wrapper::open(temp_db_file_name.string(), sqlite_wrapper::open_flags::open_only)};
     ASSERT_NE(database.get(), nullptr);
   }
 }
