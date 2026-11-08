@@ -73,7 +73,7 @@ namespace
 
   class sqlite_wrapper_mocked_tests : public Test
   {
-   public:
+  public:
     sqlite_wrapper_mocked_tests() = default;
     ~sqlite_wrapper_mocked_tests() override = default;
 
@@ -82,9 +82,11 @@ namespace
     auto operator=(const sqlite_wrapper_mocked_tests& other) -> sqlite_wrapper_mocked_tests& = delete;
     auto operator=(sqlite_wrapper_mocked_tests&& other) noexcept -> sqlite_wrapper_mocked_tests& = delete;
 
+  protected:
     void SetUp() override;
     void TearDown() override;
 
+  public:
     static void expect_open_and_close(std::string_view file_name, sqlite3& database, int flags);
     static void expect_open_and_close(std::string_view file_name, sqlite3& database)
     {

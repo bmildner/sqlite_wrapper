@@ -18,17 +18,21 @@ extern "C"
   }
 }  // extern "C"
 
-// the following code turns ASSERT-failure into an exception, allows nested function in a test to abort test execution immediately
-class ThrowListener : public testing::EmptyTestEventListener
+namespace
 {
-  void OnTestPartResult(const testing::TestPartResult& result) override
+  // the following code turns ASSERT-failure into an exception, allows nested function in a test to abort test execution immediately
+  class ThrowListener : public testing::EmptyTestEventListener
   {
-    if (result.type() == testing::TestPartResult::kFatalFailure)
+  public:
+    void OnTestPartResult(const testing::TestPartResult& result) override
     {
-      throw testing::AssertionException(result);
+      if (result.type() == testing::TestPartResult::kFatalFailure)
+      {
+        throw testing::AssertionException(result);
+      }
     }
-  }
-};
+  };
+} // namespace
 
 auto main(int argc, char** argv) -> int
 {

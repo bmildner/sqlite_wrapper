@@ -14,7 +14,8 @@ Checks: '*,
   -zircon-*,
   -cert-err58-cpp,
   -performance-enum-size,
-  -portability-avoid-pragma-once'
+  -portability-avoid-pragma-once,
+  -readability-trailing-comma'
 CheckOptions:
   - key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
     value: 1

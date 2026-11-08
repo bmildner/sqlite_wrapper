@@ -97,7 +97,7 @@ namespace sqlite_wrapper
   {
     return std::ranges::any_of(
         arg, [this](const auto& frame)
-        { return (frame.description().contains(function_name)) && (frame.source_file().ends_with(file_name)); });
+        { return frame.description().contains(function_name) && frame.source_file().ends_with(file_name); });
   }
 }  // namespace sqlite_wrapper
 
@@ -117,8 +117,9 @@ namespace sqlite_wrapper
     std::optional<std::string> what;                                                                               \
     [[maybe_unused]] std::optional<std::stacktrace> stack_trace;                                                   \
     sqlite_wrapper::details::assert_throws_with_msg<expected_exception>(statement, #statement, what, stack_trace); \
-    ASSERT_TRUE(what.has_value());                                                                                 \
-    ASSERT_THAT(*what, msg_matcher);                                                                                    \
+    ASSERT_TRUE(what.has_value()) << "Expected message from exception to be captured!";                            \
+    /* NOLINTNEXTLINE(bugprone-unchecked-optional-access) see ASSERT_TRUE above */                                 \
+    ASSERT_THAT(*what, msg_matcher);                                                                               \
   }
 
 /**
@@ -141,12 +142,14 @@ namespace sqlite_wrapper
   {                                                                                                                \
     std::optional<std::string> what;                                                                               \
     std::optional<std::stacktrace> stack_trace;                                                                    \
-    sqlite_wrapper::details::assert_throws_with_msg<expected_exception>(statement, #statement, what, stack_trace);  \
-    ASSERT_TRUE(what.has_value());                                                                                  \
-    ASSERT_THAT(*what, msg_matcher);                                                                                \
+    sqlite_wrapper::details::assert_throws_with_msg<expected_exception>(statement, #statement, what, stack_trace); \
+    ASSERT_TRUE(what.has_value()) << "Expected message from exception to be captured!";                            \
+    /* NOLINTNEXTLINE(bugprone-unchecked-optional-access) see ASSERT_TRUE above */                                 \
+    ASSERT_THAT(*what, msg_matcher);                                                                               \
     if constexpr (sqlite_wrapper::are_stack_traces_supported())                                                    \
     {                                                                                                              \
       ASSERT_TRUE(stack_trace.has_value()) << "Expected a stack trace to be captured!";                            \
+      /* NOLINTNEXTLINE(bugprone-unchecked-optional-access) see ASSERT_TRUE above */                               \
       EXPECT_THAT(*stack_trace, stack_trace_matcher);                                                              \
     }                                                                                                              \
     else                                                                                                           \

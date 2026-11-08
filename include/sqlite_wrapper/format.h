@@ -36,7 +36,7 @@ namespace sqlite_wrapper
     return SQLITEWRAPPER_FORMAT_NAMESPACE::format(fmt, std::forward<Args>(args)...);
   }
 
-  using format_error = SQLITEWRAPPER_FORMAT_NAMESPACE::format_error;
+  using SQLITEWRAPPER_FORMAT_NAMESPACE::format_error;
 
 #ifdef __cpp_lib_to_underlying
   using std::to_underlying;
@@ -67,7 +67,7 @@ namespace sqlite_wrapper
 namespace SQLITEWRAPPER_FORMAT_NAMESPACE_NAME
 {
   template <>
-  // NOLINTNEXTLINE(cert-dcl58-cpp) modification of 'std' namespace can result in undefined behavior
+  // NOLINTNEXTLINE(cert-dcl58-cpp,bugprone-std-namespace-modification) modification of 'std' namespace can result in undefined behavior
   struct formatter<std::source_location> : sqlite_wrapper::empty_format_spec
   {
     template <typename FmtContext>

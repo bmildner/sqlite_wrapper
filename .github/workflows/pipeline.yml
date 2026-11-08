@@ -60,8 +60,8 @@ jobs:
           sudo apt-get install -y gcc-14 g++-14
           curl -fsSL https://apt.llvm.org/llvm.sh -o /tmp/llvm.sh
           chmod +x /tmp/llvm.sh
-          sudo /tmp/llvm.sh 20
-          sudo apt-get install -y clang-tidy-20
+          sudo /tmp/llvm.sh 21
+          sudo apt-get install -y clang-tidy-21
 
       - name: Install newest toolchain
         if: runner.os == 'Linux' && contains(matrix.preset, 'newest-toolset')
@@ -71,8 +71,8 @@ jobs:
           sudo apt-get install -y gcc-15 g++-15
           curl -fsSL https://apt.llvm.org/llvm.sh -o /tmp/llvm.sh
           chmod +x /tmp/llvm.sh
-          sudo /tmp/llvm.sh 21
-          sudo apt-get install -y clang-tidy-21
+          sudo /tmp/llvm.sh 22
+          sudo apt-get install -y clang-tidy-22
 
       - name: Install experimental toolchain
         if: runner.os == 'Linux' && contains(matrix.preset, 'experimental-toolset')
@@ -82,8 +82,8 @@ jobs:
           sudo apt-get install -y gcc-16 g++-16
           curl -fsSL https://apt.llvm.org/llvm.sh -o /tmp/llvm.sh
           chmod +x /tmp/llvm.sh
-          sudo /tmp/llvm.sh 21
-          sudo apt-get install -y clang-tidy-21
+          sudo /tmp/llvm.sh 23
+          sudo apt-get install -y clang-tidy-23
 
       - name: Set up MSVC dev environment
         if: runner.os == 'Windows'
