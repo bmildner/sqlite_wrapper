@@ -39,7 +39,7 @@ static_assert(!sqlite_wrapper::array_like<std::tuple<>>);
 static_assert(!sqlite_wrapper::array_like<std::tuple<int, int, bool>>);
 static_assert(!sqlite_wrapper::array_like<std::tuple<unsigned, int, int>>);
 
-// test smake_as_either concept
+// test same_as_either concept
 static_assert(sqlite_wrapper::same_as_either<int, int>);
 static_assert(sqlite_wrapper::same_as_either<int, char, int, float>);
 
